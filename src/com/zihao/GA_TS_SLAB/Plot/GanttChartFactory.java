@@ -16,6 +16,7 @@ import org.jfree.data.category.IntervalCategoryDataset;
 import org.jfree.chart.StandardChartTheme;
 import java.text.NumberFormat;
 
+
 public class GanttChartFactory extends ChartFactory {
 
     protected static ChartTheme currentTheme = new StandardChartTheme("JFree");

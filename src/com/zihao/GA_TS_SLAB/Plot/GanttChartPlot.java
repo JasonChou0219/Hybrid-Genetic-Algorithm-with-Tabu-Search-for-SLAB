@@ -2,8 +2,10 @@ package com.zihao.GA_TS_SLAB.Plot;
 
 import com.zihao.GA_TS_SLAB.Data.Input;
 import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
+import com.zihao.GA_TS_SLAB.GA.Calculation;
 import com.zihao.GA_TS_SLAB.GA.Chromosome;
 import com.zihao.GA_TS_SLAB.GA.Schedule;
+import com.zihao.GA_TS_SLAB.GA.Calculation;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -12,6 +14,10 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.*;
 
+
+/**
+ * Description: Plot Gantt chart for a schedule solution
+ */
 public class GanttChartPlot {
     public static void main(String[] args) {
 
@@ -19,14 +25,17 @@ public class GanttChartPlot {
         Input input = new Input(parentDir);
         input.getProblemDesFromFile();
 
+        List<Integer> OS = new ArrayList<>(List.of(1, 3, 5, 4, 10, 2, 7, 8, 9, 6, 11, 12, 13, 14, 16, 15, 17));
+        List<Integer> MS = new ArrayList<>(List.of(5, 5, 5, 3, 6, 2, 6, 5, 1, 4, 6, 2, 5, 4, 5, 6, 2));
 
-        Random random = new Random();
-        Chromosome chromosome = new Chromosome(random);
+        Chromosome chromosome = new Chromosome(OS, MS);
         Schedule schedule = chromosome.decode();
+        Calculation calculation = Calculation.getInstance();
+        System.out.println("The fitness is " + calculation.calculateFitness(schedule));
 
 
-        File csvFile = new File("schedule.csv");
-        try (FileWriter writer = new FileWriter(csvFile)) {
+        File scheduelFile = new File("src/com/zihao/GA_TS_SLAB/Plot/schedule.csv");
+        try (FileWriter writer = new FileWriter(scheduelFile)) {
             writer.append("Operation,Machine,Start,End\n");
             Map<Integer, Integer> startTimes = schedule.getStartTimes();
             Map<Integer, List<Integer>> machineAssignments = schedule.getMachineAssignments();
@@ -44,7 +53,24 @@ public class GanttChartPlot {
             e.printStackTrace();
         }
 
-        System.out.println("Schedule exported to " + csvFile.getAbsolutePath());
+        System.out.println("Schedule exported to " + scheduelFile.getAbsolutePath());
+
+
+        File adjacencyCsvFile = new File("src/com/zihao/GA_TS_SLAB/Plot/adjacency_list.csv");
+        try (FileWriter writer = new FileWriter(adjacencyCsvFile)) {
+            writer.append("Operation,AdjacencyList\n");
+            Map<Integer, List<Integer>> adjacencyList = ProblemSetting.getInstance().getDag().getAdjacencyList();
+
+            for (Map.Entry<Integer, List<Integer>> entry : adjacencyList.entrySet()) {
+                int operation = entry.getKey();
+                List<Integer> neighbors = entry.getValue();
+                writer.append(operation + "," + neighbors.toString().replace("[", "").replace("]", "").replace(" ", "") + "\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
 
         // Call python script
         try {

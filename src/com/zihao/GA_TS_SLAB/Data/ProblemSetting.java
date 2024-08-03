@@ -8,7 +8,7 @@ import com.zihao.GA_TS_SLAB.Graph.DirectedAcyclicGraph;
 
 
 /**
- * Description: the parameter need to tackle the SLAB problem
+ * Description: the data of the problemsetting needed to tackle the SLAB problem
  */
 public class ProblemSetting {
     //machine

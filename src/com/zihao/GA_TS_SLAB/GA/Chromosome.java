@@ -12,11 +12,14 @@ import  java.util.*;
 import java.io.*;
 
 import  com.zihao.GA_TS_SLAB.Data.Input;
+import com.zihao.GA_TS_SLAB.Data.TCMB;
 import com.zihao.GA_TS_SLAB.GA.Schedule;
 import  com.zihao.GA_TS_SLAB.Data.ProblemSetting;
 import  com.zihao.GA_TS_SLAB.Graph.DirectedAcyclicGraph;
+import com.zihao.GA_TS_SLAB.GA.Parameters;
 
 public class Chromosome implements Comparable<Chromosome> {
+    private Parameters parameters = new Parameters();
     private static int[][] orderMatrix;
     private static final ProblemSetting problemSetting = ProblemSetting.getInstance();
     private static final int length = ProblemSetting.getInstance().getJobNum();
@@ -24,7 +27,7 @@ public class Chromosome implements Comparable<Chromosome> {
     private ArrayList<Integer> OS;
     private ArrayList<Integer> MS;
     public Random r;
-    public double fitness;
+    double fitness;
 
     // Randomly generate OS and perform topological sort and
     // generate according compatible MS
@@ -71,6 +74,7 @@ public class Chromosome implements Comparable<Chromosome> {
             buildOrderMatrix(problemSetting.getDag(), totalOpNum);
             computeTransitiveClosure(totalOpNum);
         }
+
     }
 
     private void buildOrderMatrix(DirectedAcyclicGraph dag, int totalOpNum) {
@@ -277,6 +281,7 @@ public class Chromosome implements Comparable<Chromosome> {
         // Return the schedule solution
         return new Schedule(idleTimePeriods, earliestStartTimes, assignment, startTimes, machineAssignments, y_abk);
     }
+
 
     @Override
     public String toString() {

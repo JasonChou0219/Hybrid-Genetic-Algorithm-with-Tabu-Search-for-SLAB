@@ -10,6 +10,10 @@ import javafx.scene.chart.ScatterChart;
 import javafx.stage.Stage;
 import java.util.*;
 
+/**
+ * Description: concrete schedule solution
+ */
+
 public class Schedule {
     // the sorted idle time interval of machine
     private Map<Integer, TreeSet<int[]>> idleTimePeriods;
