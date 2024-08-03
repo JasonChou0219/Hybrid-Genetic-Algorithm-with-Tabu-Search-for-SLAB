@@ -1,0 +1,122 @@
+.
+├── LineChartExample.png
+├── adjacency_list.csv
+├── out
+│   └── production
+│       └── Hybrid GA and TS for SLAB
+│           ├── Dataset
+│           │   ├── Gu2016
+│           │   │   ├── N1
+│           │   │   │   ├── dependency.tsv
+│           │   │   │   ├── machines.tsv
+│           │   │   │   ├── operations.tsv
+│           │   │   │   └── tcmb.tsv
+│           │   │   └── N5
+│           │   │       ├── dependency.tsv
+│           │   │       ├── machines.tsv
+│           │   │       ├── operations.tsv
+│           │   │       └── tcmb.tsv
+│           │   ├── RNAseq
+│           │   │   ├── N10_min
+│           │   │   │   ├── dependency.tsv
+│           │   │   │   ├── machines.tsv
+│           │   │   │   ├── operations.tsv
+│           │   │   │   └── tcmb.tsv
+│           │   │   └── N5
+│           │   │       ├── dependency.tsv
+│           │   │       ├── machines.tsv
+│           │   │       ├── operations.tsv
+│           │   │       └── tcmb.tsv
+│           │   ├── qPCR
+│           │   │   └── N5
+│           │   │       ├── dependency.tsv
+│           │   │       ├── machines.tsv
+│           │   │       ├── operations.tsv
+│           │   │       └── tcmb.tsv
+│           │   └── qPCR_RNAseq
+│           │       └── N5_N5
+│           │           ├── dependency.tsv
+│           │           ├── machines.tsv
+│           │           ├── operations.tsv
+│           │           └── tcmb.tsv
+│           └── com
+│               └── zihao
+│                   └── GA_TS_SLAB
+│                       ├── Data
+│                       ├── GA
+│                       ├── Graph
+│                       ├── Main
+│                       ├── Plot
+│                       │   ├── adjacency_list.csv
+│                       │   ├── plot_gantt.py
+│                       │   └── schedule.csv
+│                       └── Test
+├── project-tree.txt
+├── schedule.csv
+└── src
+    ├── Dataset
+    │   ├── Gu2016
+    │   │   ├── N1
+    │   │   │   ├── dependency.tsv
+    │   │   │   ├── machines.tsv
+    │   │   │   ├── operations.tsv
+    │   │   │   └── tcmb.tsv
+    │   │   └── N5
+    │   │       ├── dependency.tsv
+    │   │       ├── machines.tsv
+    │   │       ├── operations.tsv
+    │   │       └── tcmb.tsv
+    │   ├── RNAseq
+    │   │   ├── N10_min
+    │   │   │   ├── dependency.tsv
+    │   │   │   ├── machines.tsv
+    │   │   │   ├── operations.tsv
+    │   │   │   └── tcmb.tsv
+    │   │   └── N5
+    │   │       ├── dependency.tsv
+    │   │       ├── machines.tsv
+    │   │       ├── operations.tsv
+    │   │       └── tcmb.tsv
+    │   ├── qPCR
+    │   │   └── N5
+    │   │       ├── dependency.tsv
+    │   │       ├── machines.tsv
+    │   │       ├── operations.tsv
+    │   │       └── tcmb.tsv
+    │   └── qPCR_RNAseq
+    │       └── N5_N5
+    │           ├── dependency.tsv
+    │           ├── machines.tsv
+    │           ├── operations.tsv
+    │           └── tcmb.tsv
+    └── com
+        └── zihao
+            └── GA_TS_SLAB
+                ├── Data
+                │   ├── Input.java
+                │   ├── Operation.java
+                │   ├── ProblemSetting.java
+                │   └── TCMB.java
+                ├── GA
+                │   ├── Chromosome.java
+                │   ├── Parameters.java
+                │   ├── Population.java
+                │   └── Schedule.java
+                ├── Graph
+                │   ├── DAGVisualization.java
+                │   ├── DirectedAcyclicGraph.java
+                │   └── Node.java
+                ├── Main
+                │   └── Main.java
+                ├── Plot
+                │   ├── GanttChartFactory.java
+                │   ├── GanttChartPlot.java
+                │   ├── TaskNumeric.java
+                │   ├── adjacency_list.csv
+                │   ├── plot_gantt.py
+                │   └── schedule.csv
+                └── Test
+                    ├── JFreeChartTest.java
+                    └── PermutationGenerator.java
+
+45 directories, 75 files
