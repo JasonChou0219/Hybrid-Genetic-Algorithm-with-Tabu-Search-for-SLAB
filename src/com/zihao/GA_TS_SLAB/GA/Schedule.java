@@ -1,13 +1,5 @@
 package com.zihao.GA_TS_SLAB.GA;
 
-import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.XYChart;
-import javafx.scene.chart.XYChart.Series;
-import javafx.scene.chart.XYChart.Data;
-import javafx.scene.chart.ScatterChart;
-import javafx.stage.Stage;
 import java.util.*;
 
 /**
@@ -62,7 +54,7 @@ public class Schedule {
         return y_abk;
     }
 
-    //
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

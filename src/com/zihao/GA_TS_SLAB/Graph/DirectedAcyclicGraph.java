@@ -7,7 +7,7 @@ import java.util.HashMap;
 
 public class DirectedAcyclicGraph {
 
-    private Map<Integer, List<Integer>> adjacencyList;
+    private final Map<Integer, List<Integer>> adjacencyList;
 
     public DirectedAcyclicGraph() {
         adjacencyList = new HashMap<>();
@@ -29,24 +29,15 @@ public class DirectedAcyclicGraph {
     }
 
 //    public void printGraph() {
+//        StringBuilder dot = new StringBuilder();
+//        dot.append("digraph G {\n");
 //        for (Map.Entry<Integer, List<Integer>> entry : adjacencyList.entrySet()) {
-//            System.out.print("Operation " + entry.getKey() + " -> ");
-//            for (int neighbor : entry.getValue()) {
-//                System.out.print(neighbor + " ");
+//            int from = entry.getKey();
+//            for (int to : entry.getValue()) {
+//                dot.append("    ").append(from).append(" -> ").append(to).append(";\n");
 //            }
-//            System.out.println();
 //        }
+//        dot.append("}");
+//        System.out.println(dot.toString());
 //    }
-    public void printGraph() {
-        StringBuilder dot = new StringBuilder();
-        dot.append("digraph G {\n");
-        for (Map.Entry<Integer, List<Integer>> entry : adjacencyList.entrySet()) {
-            int from = entry.getKey();
-            for (int to : entry.getValue()) {
-                dot.append("    ").append(from).append(" -> ").append(to).append(";\n");
-            }
-        }
-        dot.append("}");
-        System.out.println(dot.toString());
-    }
 }
