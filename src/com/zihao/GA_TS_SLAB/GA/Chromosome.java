@@ -12,37 +12,41 @@ import  java.util.*;
 import java.io.*;
 
 import  com.zihao.GA_TS_SLAB.Data.Input;
-import com.zihao.GA_TS_SLAB.Data.TCMB;
 import com.zihao.GA_TS_SLAB.GA.Schedule;
 import  com.zihao.GA_TS_SLAB.Data.ProblemSetting;
 import  com.zihao.GA_TS_SLAB.Graph.DirectedAcyclicGraph;
-import com.zihao.GA_TS_SLAB.GA.Parameters;
+import  com.zihao.GA_TS_SLAB.GA.Utility;
 
+
+/**
+ * Description: Chromosome of an individual
+ */
 public class Chromosome implements Comparable<Chromosome> {
-    private Parameters parameters = new Parameters();
-    private static int[][] orderMatrix;
     private static final ProblemSetting problemSetting = ProblemSetting.getInstance();
-    private static final int length = ProblemSetting.getInstance().getJobNum();
 
-    private ArrayList<Integer> OS;
-    private ArrayList<Integer> MS;
-    public Random r;
+    private List<Integer> OS;
+    private List<Integer> MS;
+    // need to make sure that every change to teh OS or MS also update schedule and fitness
+    // use Chromosome(OS,MS) to ensure this (especially for mutation)
+    private Schedule schedule;
+    private Random r;
     double fitness;
 
+
+
+    public Chromosome(Chromosome other) {
+        this.OS = new ArrayList<>(other.OS);
+        this.MS = new ArrayList<>(other.MS);
+        this.r = new Random();
+        this.schedule = this.decode();
+        this.fitness = Utility.calculateFitness(schedule);
+    }
     // Randomly generate OS and perform topological sort and
     // generate according compatible MS
     public Chromosome(Random r) {
         OS = new ArrayList<>();
         MS = new ArrayList<>();
         int totalOpNum = problemSetting.getTotalOpNum();
-
-        // Initialize orderMatrix if it hasn't been initialized yet
-        if (orderMatrix == null) {
-            orderMatrix = new int[totalOpNum + 1][totalOpNum + 1];
-            buildOrderMatrix(problemSetting.getDag(), totalOpNum);
-            computeTransitiveClosure(totalOpNum);
-//            printOrderMatrix(totalOpNum);
-        }
 
         // Generate a random permutation of operation IDs
         List<Integer> operations = new ArrayList<>();
@@ -52,7 +56,7 @@ public class Chromosome implements Comparable<Chromosome> {
         Collections.shuffle(operations, r);
 
         // Perform topological sort on the random permutation using the orderMatrix
-        List<Integer> topoSortedOperations = topologicalSort(operations);
+        List<Integer> topoSortedOperations = Utility.topologicalSort(operations);
 
         // Generate MS based on the topologically sorted OS
         for (int op : topoSortedOperations) {
@@ -61,72 +65,33 @@ public class Chromosome implements Comparable<Chromosome> {
             int randomMachine = compatibleMachines.get(r.nextInt(compatibleMachines.size()));
             MS.add(randomMachine);
         }
+
+        this.schedule = this.decode();
+        this.fitness = Utility.calculateFitness(schedule);
     }
 
     // Constructor by OS and MS, used to test GanttGraphPlot
+
     public Chromosome(List<Integer> OS, List<Integer> MS) {
         this.OS = new ArrayList<>(OS);
-        this.MS = new ArrayList<>(MS);
+        this.MS = new ArrayList<>();
         int totalOpNum = problemSetting.getTotalOpNum();
 
-        if (orderMatrix == null) {
-            orderMatrix = new int[totalOpNum + 1][totalOpNum + 1];
-            buildOrderMatrix(problemSetting.getDag(), totalOpNum);
-            computeTransitiveClosure(totalOpNum);
-        }
-
+        // Check compatibility and replace incompatible machines
+        r = new Random();
+        this.MS = Utility.compatibleAdjust(MS,OS);
+        this.schedule = decode();
+        this.fitness = Utility.calculateFitness(schedule);
     }
 
-    private void buildOrderMatrix(DirectedAcyclicGraph dag, int totalOpNum) {
-        for (int i = 1; i <= totalOpNum; i++) {
-            for (int neighbor : dag.getNeighbors(i)) {
-                orderMatrix[i][neighbor] = 1;
-            }
-        }
+    // Remember to update schedule and fitness after changing OS and MS
+    public void setOS(List<Integer>OS) {
+        this.OS = OS;
     }
 
-    // using the transitive relationship
-    private void computeTransitiveClosure(int totalOpNum) {
-        for (int k = 1; k <= totalOpNum; k++) {
-            for (int i = 1; i <= totalOpNum; i++) {
-                for (int j = 1; j <= totalOpNum; j++) {
-                    if (orderMatrix[i][k] == 1 && orderMatrix[k][j] == 1) {
-                        orderMatrix[i][j] = 1;
-                    }
-                }
-            }
-        }
+    public void setMS(List<Integer>MS){
+        this.MS = MS;
     }
-
-    private List<Integer> topologicalSort(List<Integer> operations) {
-        int n = operations.size();
-        for (int i = 0; i < n - 1; i++){
-            int minIndex = i;
-            for (int j = i + 1; j < n; j++){
-                if (orderMatrix[operations.get(j)][operations.get(minIndex)] == 1) {
-                    minIndex = j;
-                }
-            }
-            int temp = operations.get(minIndex);
-            operations.set(minIndex, operations.get(i));
-            operations.set(i, temp);
-        }
-
-        return operations;
-    }
-
-    private void printOrderMatrix(int totalOpNum) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Order Matrix:\n");
-        for (int i = 1; i <= totalOpNum; i++) {
-            for (int j = 1; j <= totalOpNum; j++) {
-                sb.append(orderMatrix[i][j]).append(" ");
-            }
-            sb.append(System.lineSeparator());
-        }
-        System.out.println(sb);
-    }
-
     public List<Integer> getOS() {
         return OS;
     }
@@ -139,6 +104,7 @@ public class Chromosome implements Comparable<Chromosome> {
     // Check if OS meets the precedence constraints
     public boolean checkPrecedenceConstraints() {
         Set<Integer> seen = new HashSet<>();
+        int[][] orderMatrix = problemSetting.getOrderMatrix();
         for (int op : OS) {
             for (int i = 1; i < orderMatrix.length; i++) {
                 if (orderMatrix[i][op] == 1 && !seen.contains(i)) {
@@ -185,6 +151,19 @@ public class Chromosome implements Comparable<Chromosome> {
             sb.append(node).append(" : ").append(reverseDag.getNeighbors(node)).append("\n");
         }
         System.out.println(sb.toString());
+    }
+
+    public void updateScheduleAndFitness() {
+        schedule = decode();
+        fitness = Utility.calculateFitness(schedule);
+    }
+
+    public  Schedule getSchedule(){
+        return schedule;
+    }
+
+    public double getFitness(){
+        return fitness;
     }
 
     public Schedule decode() {
@@ -291,6 +270,7 @@ public class Chromosome implements Comparable<Chromosome> {
                 '}';
     }
 
+    // remained to be done
     @Override
     public int compareTo(Chromosome o) {
         if (o.fitness > this.fitness) {

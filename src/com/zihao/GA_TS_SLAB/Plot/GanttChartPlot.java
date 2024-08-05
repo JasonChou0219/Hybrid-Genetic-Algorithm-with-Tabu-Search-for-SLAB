@@ -2,10 +2,11 @@ package com.zihao.GA_TS_SLAB.Plot;
 
 import com.zihao.GA_TS_SLAB.Data.Input;
 import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
-import com.zihao.GA_TS_SLAB.GA.Calculation;
+
 import com.zihao.GA_TS_SLAB.GA.Chromosome;
 import com.zihao.GA_TS_SLAB.GA.Schedule;
-import com.zihao.GA_TS_SLAB.GA.Calculation;
+import com.zihao.GA_TS_SLAB.GA.Utility;
+import com.zihao.GA_TS_SLAB.GA.HybridGA;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -22,16 +23,19 @@ public class GanttChartPlot {
     public static void main(String[] args) {
 
         File parentDir = new File("src/Dataset/Gu2016/N1");
+//        File parentDir = new File("src/Dataset/Gu2016/N5");
+//        File parentDir = new File("src/Dataset/qPCR.N5");
         Input input = new Input(parentDir);
         input.getProblemDesFromFile();
+        HybridGA hybridGA = new HybridGA();
+        Schedule schedule = hybridGA.solve();
 
-        List<Integer> OS = new ArrayList<>(List.of(1, 3, 5, 4, 10, 2, 7, 8, 9, 6, 11, 12, 13, 14, 16, 15, 17));
-        List<Integer> MS = new ArrayList<>(List.of(5, 5, 5, 3, 6, 2, 6, 5, 1, 4, 6, 2, 5, 4, 5, 6, 2));
 
-        Chromosome chromosome = new Chromosome(OS, MS);
-        Schedule schedule = chromosome.decode();
-        Calculation calculation = Calculation.getInstance();
-        System.out.println("The fitness is " + calculation.calculateFitness(schedule));
+//        List<Integer> OS = new ArrayList<>(List.of(1, 3, 5, 4, 10, 2, 7, 8, 9, 6, 11, 12, 13, 14, 16, 15, 17));
+//        List<Integer> MS = new ArrayList<>(List.of(5, 5, 5, 3, 6, 2, 6, 5, 1, 4, 6, 2, 5, 4, 5, 6, 2));
+//        Chromosome chromosome = new Chromosome(OS, MS);
+//        Schedule schedule = chromosome.getSchedule();
+//        System.out.println("The fitness is " + chromosome.getFitness());
 
 
         File scheduelFile = new File("src/com/zihao/GA_TS_SLAB/Plot/schedule.csv");

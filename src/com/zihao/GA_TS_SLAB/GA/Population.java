@@ -6,11 +6,10 @@ import java.util.List;
 import java.util.Random;
 
 import com.zihao.GA_TS_SLAB.Data.Input;
-import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
 
 public class Population {
-    private Parameters parameters = new Parameters();
-    private int popNum = parameters.popNum;
+
+    private int popNum = Parameters.POP_NUM;
     private List<Chromosome> chromosomes;
 
     public Population() {

@@ -140,6 +140,7 @@ public class Input {
 
             int totalJobNum = jobToOpCountMap.size();
 
+
             // transform Map jobToOpCountMap into int[]
             int maxJobID = jobToOpCountMap.keySet().stream().max(Integer::compare).orElse(0);
             int[] opNumEachJob = new int[maxJobID];
@@ -155,6 +156,10 @@ public class Input {
             problemSetting.setProcessingTime(processingTime);
             problemSetting.setOpToCompatibleList(opToCompatibleList);
             problemSetting.setOpToJob(opToJob);
+
+            int[][] orderMatrix = new int[totalOpNum + 1][totalOpNum + 1];
+
+            problemSetting.buildOrderMatrix(problemSetting.getDag(), totalOpNum);
 
 
         } catch (IOException e) {

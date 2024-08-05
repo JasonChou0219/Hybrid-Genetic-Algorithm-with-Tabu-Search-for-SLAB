@@ -12,21 +12,21 @@ import com.zihao.GA_TS_SLAB.Graph.DirectedAcyclicGraph;
  */
 public class ProblemSetting {
     //machine
-    private int machineNum = 0;
+    private int machineNum;
     // a map from a machine type to its machine id list
-    private Map<Integer, List<Integer>> machineTypeToList = new HashMap<>();
+    private Map<Integer, List<Integer>> machineTypeToList;
     private String[] machineNames;
 
     //job
-    private int jobNum = 0;
+    private int jobNum;
     private int[] opNumEachJob;
 
     //operation
-    private int totalOpNum = 0;
+    private int totalOpNum;
     // a map that map from opID to its compatible machine list
     private int[] processingTime;
-    private Map<Integer, List<Integer>> opToCompatibleList = new HashMap<>();
-    private Map<Integer, Integer> opToJob = new HashMap<>();
+    private Map<Integer, List<Integer>> opToCompatibleList;
+    private Map<Integer, Integer> opToJob;
 
     // TCMB
     private List<TCMB> TCMBList;
@@ -36,6 +36,8 @@ public class ProblemSetting {
 
     //Reverse DAG
     private DirectedAcyclicGraph reverseDag;
+
+    private int[][] orderMatrix;
 
     // only a single instance globally
     private static ProblemSetting instance;
@@ -48,10 +50,13 @@ public class ProblemSetting {
         this.opToCompatibleList = new HashMap<>();
         this.processingTime = new int[0];
         this.opNumEachJob = new int[0];
+        this.machineNames = new String[0];
         this.machineTypeToList = new HashMap<>();
+        this.opToJob = new HashMap<>();
         this.TCMBList = new ArrayList<>();
         this.dag = new DirectedAcyclicGraph();
         this.reverseDag = new DirectedAcyclicGraph();
+        this.orderMatrix = new int[0][0];
     }
 
     // Method to get the single instance of the class
@@ -166,4 +171,44 @@ public class ProblemSetting {
     public void setReverseDag(DirectedAcyclicGraph reverseDag){
         this.reverseDag =reverseDag;
     }
+
+
+    public int[][] getOrderMatrix() {
+        return orderMatrix;
+    }
+
+    public void buildOrderMatrix(DirectedAcyclicGraph dag, int totalOpNum) {
+        orderMatrix = new int[totalOpNum + 1][totalOpNum + 1];
+        for (int i = 1; i <= totalOpNum; i++) {
+            for (int neighbor : dag.getNeighbors(i)) {
+                orderMatrix[i][neighbor] = 1;
+            }
+        }
+        // using the transitive relationship
+        for (int k = 1; k <= totalOpNum; k++) {
+            for (int i = 1; i <= totalOpNum; i++) {
+                for (int j = 1; j <= totalOpNum; j++) {
+                    if (orderMatrix[i][k] == 1 && orderMatrix[k][j] == 1) {
+                        orderMatrix[i][j] = 1;
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    private void printOrderMatrix(int totalOpNum) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Order Matrix:\n");
+        for (int i = 1; i <= totalOpNum; i++) {
+            for (int j = 1; j <= totalOpNum; j++) {
+                sb.append(orderMatrix[i][j]).append(" ");
+            }
+            sb.append(System.lineSeparator());
+        }
+        System.out.println(sb);
+    }
+
+
 }
