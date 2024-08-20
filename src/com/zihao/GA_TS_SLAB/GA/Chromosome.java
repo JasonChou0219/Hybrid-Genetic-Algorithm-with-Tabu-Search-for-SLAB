@@ -12,6 +12,7 @@ import  java.util.*;
 import java.io.*;
 
 import  com.zihao.GA_TS_SLAB.Data.Input;
+import com.zihao.GA_TS_SLAB.Data.TCMB;
 import com.zihao.GA_TS_SLAB.GA.Schedule;
 import  com.zihao.GA_TS_SLAB.Data.ProblemSetting;
 import  com.zihao.GA_TS_SLAB.Graph.DirectedAcyclicGraph;
@@ -26,6 +27,7 @@ public class Chromosome implements Comparable<Chromosome> {
 
     private List<Integer> OS;
     private List<Integer> MS;
+    private Map<Integer, Integer> delay;
     // need to make sure that every change to teh OS or MS also update schedule and fitness
     // use Chromosome(OS,MS) to ensure this (especially for mutation)
     private Schedule schedule;
@@ -35,17 +37,22 @@ public class Chromosome implements Comparable<Chromosome> {
 
 
     public Chromosome(Chromosome other) {
-        this.OS = new ArrayList<>(other.OS);
-        this.MS = new ArrayList<>(other.MS);
+        this.OS = new ArrayList<>(other.getOS());
+        this.MS = Utility.compatibleAdjust(other.getMS(),other.getOS());
+        this.delay = new HashMap<>(other.getDelay());
         this.r = new Random();
         this.schedule = this.decode();
         this.fitness = Utility.calculateFitness(schedule);
+        checkPrecedenceConstraints();
+        checkCompatibleMachines();
     }
     // Randomly generate OS and perform topological sort and
     // generate according compatible MS
     public Chromosome(Random r) {
         OS = new ArrayList<>();
         MS = new ArrayList<>();
+        delay = new HashMap<Integer, Integer>();
+        this.r = r;
         int totalOpNum = problemSetting.getTotalOpNum();
 
         // Generate a random permutation of operation IDs
@@ -66,23 +73,44 @@ public class Chromosome implements Comparable<Chromosome> {
             MS.add(randomMachine);
         }
 
+        //random delay
+//        Map<Integer, Integer> maxDelay = new HashMap<>();
+//        for (TCMB tcmb : problemSetting.getTCMBList()) {
+//            int curDelay = maxDelay.getOrDefault(tcmb.getOp1(), 0);
+//            if (curDelay != 0) {
+//                maxDelay.put(tcmb.getOp1(), tcmb.getTimeConstraint());
+//            }
+//            else {
+//                maxDelay.put(tcmb.getOp1(), Math.min(curDelay,tcmb.getTimeConstraint()));
+//            }
+//        }
+//        double lambda = 0.1;
+//        for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()){
+//            int randomDelay = (int)
+//            this.delay.put(entry.getKey(), )
+//        }
+
         this.schedule = this.decode();
         this.fitness = Utility.calculateFitness(schedule);
+        checkPrecedenceConstraints();
+        checkCompatibleMachines();
     }
 
     // Constructor by OS and MS, used to test GanttGraphPlot
 
-    public Chromosome(List<Integer> OS, List<Integer> MS) {
-        this.OS = new ArrayList<>(OS);
-        this.MS = new ArrayList<>();
-        int totalOpNum = problemSetting.getTotalOpNum();
-
-        // Check compatibility and replace incompatible machines
-        r = new Random();
-        this.MS = Utility.compatibleAdjust(MS,OS);
-        this.schedule = decode();
-        this.fitness = Utility.calculateFitness(schedule);
-    }
+//    public Chromosome(List<Integer> OS, List<Integer> MS) {
+//        this.OS = new ArrayList<>(OS);
+//        this.MS = new ArrayList<>();
+//        int totalOpNum = problemSetting.getTotalOpNum();
+//
+//        // Check compatibility and replace incompatible machines
+//        r = new Random();
+//        this.MS = Utility.compatibleAdjust(MS,OS);
+//        this.schedule = decode();
+//        this.fitness = Utility.calculateFitness(schedule);
+//        checkCompatibleMachines();
+//        checkPrecedenceConstraints();
+//    }
 
     // Remember to update schedule and fitness after changing OS and MS
     public void setOS(List<Integer>OS) {
@@ -98,6 +126,18 @@ public class Chromosome implements Comparable<Chromosome> {
 
     public List<Integer> getMS() {
         return MS;
+    }
+
+    public Map<Integer, Integer> getDelay(){
+        return delay;
+    }
+
+    public void setDelay(Map<Integer, Integer> delay) {
+        this.delay = delay;
+    }
+
+    public void setFitness(double fitness){
+        this.fitness = fitness;
     }
 
 
@@ -193,11 +233,36 @@ public class Chromosome implements Comparable<Chromosome> {
         // Initialize operation processing times
         int[] processingTimes = problemSetting.getProcessingTime();
 
+        List<Integer> delayList = problemSetting.getDelayList();
+
         for (int t = 0; t < totalOpNum; t++) {
             int a = OS.get(t);
             int k = MS.get(t);
             TreeSet<int[]> idlePeriods = idleTimePeriods.get(k);
             int es_a = earliestStartTimes.get(a);
+
+            int opDelay = delay.getOrDefault(a, 0);
+            es_a += opDelay;
+
+//            if (a == 4) es_a += 7;
+//            if (delayList.contains(t) && t != totalOpNum - 1){
+//                int maxDelay = 10;
+//                double lambda = 0.5;
+//                int randomDelay = (int)(-Math.log(1 - r.nextDouble()) / lambda);
+//                randomDelay = Math.min(randomDelay, maxDelay);
+//
+////                int next = OS.get(t + 1);
+//                // remained to be done, might cause problem if they are the same
+////                int maxDelay = earliestStartTimes.get(next) - es_a;
+////                System.out.println("Earliest next is " + earliestStartTimes.get(next));
+////                System.out.println("earliest current is " + es_a);
+////                int randomDelay = r.nextInt(10);
+//                delay.put(a, randomDelay);
+//                System.out.println("Operation " + a + " has been delayed for " + randomDelay + " minutes");
+//                es_a += randomDelay;
+//            }
+
+//            System.out.println("Operation: " + a + ", Earliest Start Time: " + es_a);
             int pi_a = processingTimes[a - 1];
 
             for (int[] idlePeriod : idlePeriods) {
@@ -271,9 +336,10 @@ public class Chromosome implements Comparable<Chromosome> {
     }
 
     // remained to be done
+    // lead to reverse descending sort by fitness when using Collection.sort
     @Override
     public int compareTo(Chromosome o) {
-        if (o.fitness > this.fitness) {
+        if (o.fitness < this.fitness) {
             return 1;
         } else if (this.fitness == o.fitness){
             return 0;

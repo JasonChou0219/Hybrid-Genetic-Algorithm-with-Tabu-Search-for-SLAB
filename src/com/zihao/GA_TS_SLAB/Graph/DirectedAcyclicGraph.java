@@ -28,16 +28,16 @@ public class DirectedAcyclicGraph {
         return adjacencyList;
     }
 
-//    public void printGraph() {
-//        StringBuilder dot = new StringBuilder();
-//        dot.append("digraph G {\n");
-//        for (Map.Entry<Integer, List<Integer>> entry : adjacencyList.entrySet()) {
-//            int from = entry.getKey();
-//            for (int to : entry.getValue()) {
-//                dot.append("    ").append(from).append(" -> ").append(to).append(";\n");
-//            }
-//        }
-//        dot.append("}");
-//        System.out.println(dot.toString());
-//    }
+    public void printGraph() {
+        StringBuilder dot = new StringBuilder();
+        dot.append("digraph G {\n");
+        for (Map.Entry<Integer, List<Integer>> entry : adjacencyList.entrySet()) {
+            int from = entry.getKey();
+            for (int to : entry.getValue()) {
+                dot.append("    ").append(from).append(" -> ").append(to).append(";\n");
+            }
+        }
+        dot.append("}");
+        System.out.println(dot.toString());
+    }
 }

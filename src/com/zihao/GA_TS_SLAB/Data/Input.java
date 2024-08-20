@@ -40,11 +40,18 @@ public class Input {
                     continue;
                 }
                 String[] fields = line.split("\t");
+                int jobID = Integer.parseInt(fields[0]);
                 int from = Integer.parseInt(fields[1]);
                 int to = Integer.parseInt(fields[2]);
-                problemSetting.getDag().addEdge(from, to);
-                problemSetting.getReverseDag().addEdge(to, from);
+                int fromUnique = getUniqueOpID(jobID, from, problemSetting.getOpNumEachJob());
+                int toUnique = getUniqueOpID(jobID, to, problemSetting.getOpNumEachJob());
+                problemSetting.getDag().addEdge(fromUnique, toUnique);
+                problemSetting.getReverseDag().addEdge(toUnique, fromUnique);
+
             }
+            // input_op first so the buildOrderMatrix need to be placed in input_dep
+            problemSetting.buildOrderMatrix(problemSetting.getDag(), problemSetting.getTotalOpNum());
+//            problemSetting.printOrderMatrix(problemSetting.getTotalOpNum());
         }   catch (IOException e) {
             e.printStackTrace();
         }
@@ -127,20 +134,22 @@ public class Input {
                 int processTime = Integer.parseInt(fields[3]);
 
                 totalOpNum++;
+                int uniqueOpID = totalOpNum;
                 processingTimeList.add(processTime);
 
                 // count the number of operations for each job
                 jobToOpCountMap.put(jobID, jobToOpCountMap.getOrDefault(jobID, 0) + 1);
-                opToJob.put(operationID,jobID);
+                opToJob.put(uniqueOpID,jobID);
+//                opToJob.put(operationID,jobID);
                 // map compatible machine id list to operation id
                 List<Integer> compatibleList = problemSetting.getMachineTypeToList().get(compatibleMachineType);
 
-                opToCompatibleList.put(operationID,compatibleList);
+                // can't just use operationID as key need to be unique by combining jobId
+
+                opToCompatibleList.put(uniqueOpID,compatibleList);
             }
 
             int totalJobNum = jobToOpCountMap.size();
-
-
             // transform Map jobToOpCountMap into int[]
             int maxJobID = jobToOpCountMap.keySet().stream().max(Integer::compare).orElse(0);
             int[] opNumEachJob = new int[maxJobID];
@@ -156,10 +165,7 @@ public class Input {
             problemSetting.setProcessingTime(processingTime);
             problemSetting.setOpToCompatibleList(opToCompatibleList);
             problemSetting.setOpToJob(opToJob);
-
-            int[][] orderMatrix = new int[totalOpNum + 1][totalOpNum + 1];
-
-            problemSetting.buildOrderMatrix(problemSetting.getDag(), totalOpNum);
+//            problemSetting.printOrderMatrix(totalOpNum);
 
 
         } catch (IOException e) {
@@ -173,6 +179,7 @@ public class Input {
      */
     public void inputTCMB(File filePath) {
         List<TCMB> tcmbList = new ArrayList<>();
+        List<Integer> delayList = new ArrayList<>();
         try (BufferedReader reader = getBufferedReader(filePath)) {
             String line;
             // Skip file header
@@ -190,19 +197,32 @@ public class Input {
                     int op2 = Integer.parseInt(fields[3]);
                     String point2 = fields[4];
                     int timeConstraint = Integer.parseInt(fields[5]);
-
-                    tcmbList.add(new TCMB(op1, op2, timeConstraint));
+                    int uniqueOpID1 = getUniqueOpID(jobID, op1, problemSetting.getOpNumEachJob());
+                    int uniqueOpID2 = getUniqueOpID(jobID, op2, problemSetting.getOpNumEachJob());
+                    delayList.add(uniqueOpID1);
+                    tcmbList.add(new TCMB(uniqueOpID1, uniqueOpID2, timeConstraint));
                 } catch (NumberFormatException e) {
                     System.err.println("Skipping line due to number format error: " + Arrays.toString(fields));
                 }
             }
             problemSetting.setTCMBList(tcmbList);
+            problemSetting.setDelayList(delayList);
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    public int getUniqueOpID(int jobID, int operationID, int[] opNumEachJob) {
+        int globalOpID = 0;
+
+        for (int j = 1; j < jobID; j++) {
+            globalOpID += opNumEachJob[j-1];
+        }
+
+        globalOpID += operationID;
+        return globalOpID;
+    }
 
     /**
      * Test output function to print all problem setting information
@@ -246,6 +266,8 @@ public class Input {
         for (TCMB tcmb : problemSetting.getTCMBList()) {
             System.out.println(tcmb);
         }
+
+        problemSetting.getDag().printGraph();
     }
 
 
@@ -258,15 +280,17 @@ public class Input {
         String operationFileName = "operations.tsv";
         String TCMBFileName = "tcmb.tsv";
 
-        inputDep(new File(parentDir, dependencyFileName));
+
+        // must read machine info first
         inputMachine(new File(parentDir, machineFileName));
         inputOp(new File(parentDir, operationFileName));
+        inputDep(new File(parentDir, dependencyFileName));
         inputTCMB(new File(parentDir, TCMBFileName));
     }
 
 
     public static void main(String[] args) {
-        File parentDir = new File("src/Dataset/Gu2016/N1");
+        File parentDir = new File("src/Dataset/Gu2016/N5");
         Input input = new Input(parentDir);
         input.getProblemDesFromFile();
         input.testOutput();

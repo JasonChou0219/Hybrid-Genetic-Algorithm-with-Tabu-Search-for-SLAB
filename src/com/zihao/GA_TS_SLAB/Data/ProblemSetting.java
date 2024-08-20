@@ -31,6 +31,9 @@ public class ProblemSetting {
     // TCMB
     private List<TCMB> TCMBList;
 
+    // Delay list
+    private List<Integer> delayList;
+
     //DAG
     private DirectedAcyclicGraph dag;
 
@@ -54,6 +57,7 @@ public class ProblemSetting {
         this.machineTypeToList = new HashMap<>();
         this.opToJob = new HashMap<>();
         this.TCMBList = new ArrayList<>();
+        this.delayList = new ArrayList<>();
         this.dag = new DirectedAcyclicGraph();
         this.reverseDag = new DirectedAcyclicGraph();
         this.orderMatrix = new int[0][0];
@@ -154,6 +158,15 @@ public class ProblemSetting {
         this.TCMBList = TCMBList;
     }
 
+    //delay list
+    public List<Integer> getDelayList(){
+        return delayList;
+    }
+
+    public void setDelayList(List<Integer> delayList) {
+        this.delayList = delayList;
+    }
+
     //DAG
     public DirectedAcyclicGraph getDag() {
         return dag;
@@ -181,9 +194,11 @@ public class ProblemSetting {
         orderMatrix = new int[totalOpNum + 1][totalOpNum + 1];
         for (int i = 1; i <= totalOpNum; i++) {
             for (int neighbor : dag.getNeighbors(i)) {
+//                System.out.println(i + " " + neighbor);
                 orderMatrix[i][neighbor] = 1;
             }
         }
+
         // using the transitive relationship
         for (int k = 1; k <= totalOpNum; k++) {
             for (int i = 1; i <= totalOpNum; i++) {
@@ -194,11 +209,12 @@ public class ProblemSetting {
                 }
             }
         }
+//        printOrderMatrix(totalOpNum);
     }
 
 
 
-    private void printOrderMatrix(int totalOpNum) {
+    public void printOrderMatrix(int totalOpNum) {
         StringBuilder sb = new StringBuilder();
         sb.append("Order Matrix:\n");
         for (int i = 1; i <= totalOpNum; i++) {
@@ -208,6 +224,16 @@ public class ProblemSetting {
             sb.append(System.lineSeparator());
         }
         System.out.println(sb);
+    }
+
+    public void printDag() {
+        System.out.println("DAG content:");
+        for (Map.Entry<Integer, List<Integer>> entry : dag.getAdjacencyList().entrySet()) {
+            int from = entry.getKey();
+            for (int to : entry.getValue()) {
+                System.out.println("Edge from " + from + " to " + to);
+            }
+        }
     }
 
 

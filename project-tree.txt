@@ -99,9 +99,12 @@
                 │   └── TCMB.java
                 ├── GA
                 │   ├── Chromosome.java
+                │   ├── HybridGA.java
+                │   ├── Operator.java
                 │   ├── Parameters.java
                 │   ├── Population.java
-                │   └── Schedule.java
+                │   ├── Schedule.java
+                │   └── Utility.java
                 ├── Graph
                 │   ├── DAGVisualization.java
                 │   ├── DirectedAcyclicGraph.java
@@ -109,9 +112,7 @@
                 ├── Main
                 │   └── Main.java
                 ├── Plot
-                │   ├── GanttChartFactory.java
                 │   ├── GanttChartPlot.java
-                │   ├── TaskNumeric.java
                 │   ├── adjacency_list.csv
                 │   ├── plot_gantt.py
                 │   └── schedule.csv
@@ -119,4 +120,4 @@
                     ├── JFreeChartTest.java
                     └── PermutationGenerator.java
 
-45 directories, 75 files
+45 directories, 76 files

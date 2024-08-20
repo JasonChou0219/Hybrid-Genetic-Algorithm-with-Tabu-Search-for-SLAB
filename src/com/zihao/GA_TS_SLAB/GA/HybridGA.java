@@ -9,6 +9,7 @@ import com.zihao.GA_TS_SLAB.GA.Parameters;
 import com.zihao.GA_TS_SLAB.Data.Input;
 import com.zihao.GA_TS_SLAB.GA.Utility;
 import com.zihao.GA_TS_SLAB.GA.Operator;
+import com.zihao.GA_TS_SLAB.GA.TabuSearch;
 
 public class HybridGA {
 
@@ -18,39 +19,73 @@ public class HybridGA {
         // Initialize population
         Chromosome[] parents = initPopulation();
 
-        Chromosome currentBest = getBest(parents);
+        Chromosome initBest = parents[getBestIndex(parents)];
+        Chromosome currentBest = parents[getBestIndex(parents)];
         Chromosome best = new Chromosome(currentBest);
+        Random r = new Random();
 
 
+//
+//        // 输出最终结果
+//        System.out.println("Optimized Fitness: " + optimizedChromosome.getFitness());
+//        System.out.println("Final Schedule: " + optimizedChromosome.getSchedule());
+//
+//
         int curGen = 0;
+        int remain = 0;
+
 
         while (curGen < Parameters.MAX_GENERATION) {
-            // disterpution
-
-
-            // Selection
+//            // Selection
             Chromosome[] elist = Operator.ElitistSelection(parents);
-            Chromosome[] children = Operator.TournamentSelection(parents);
-            // Crossover
+            int childrenNum = popNum - elist.length;
+            Chromosome[] children = new Chromosome[childrenNum];
+            // random disturbance
+            children = Operator.RouletteWheelSelection(parents);
+
+            if (curGen - remain > 20) {
+                for (int i = 0; i < (int) (popNum * Parameters.DISTURB_RATIO) ; i++){
+                    children[i] = new Chromosome(r);
+                }
+                remain = curGen;
+            }
+//            Chromosome[] children = Operator.TournamentSelection(parents);
+//            // Crossover
             Operator.Crossover(children);
-            // Mutation
+//            // Mutation
             Operator.Mutation(children);
-            // Combine
+//            // Combine
             int index = 0;
             for (Chromosome o: elist){
-                parents[index++] = o;
+                parents[index++] = new Chromosome(o);
             }
             for (Chromosome o : children) {
-                parents[index++] = o;
+                parents[index++] = new Chromosome(o);
             }
-            currentBest = getBest(parents);
+            int bestIndex = getBestIndex(parents);
+//            currentBest = getBest(parents);
+
+            TabuSearch tabuSearch = new TabuSearch(100, 15);
+            Chromosome optimizedChromosome = tabuSearch.optimize(parents[bestIndex]);
+            parents[bestIndex] = optimizedChromosome;
+
+            currentBest = parents[bestIndex];
+
+            System.out.println(" After " + curGen + " generation, the current  best fitness is:" + currentBest.getFitness());
             if (currentBest.getFitness() < best.getFitness()) {
+                remain = curGen;
                 best = new Chromosome(currentBest);
-                System.out.println("In " + curGen + " generation, get new best fitness :" + best.getFitness());
+//                System.out.println("In " + curGen + " generation, get new best fitness :" + best.getFitness());
             }
-            System.out.println(" After " + curGen + " generation, the best fitness is:" + best.getFitness());
+//            System.out.println(" After " + curGen + " generation, the best fitness is:" + best.getFitness());
             curGen++;
+
+
         }
+        System.out.println("The initial best fitness is " + initBest.getFitness());
+        System.out.println("The best fitness is " + best.getFitness());
+        Utility.printViolation(best.getSchedule());
+        best.checkPrecedenceConstraints();
 
         return best.getSchedule();
     }
@@ -65,7 +100,18 @@ public class HybridGA {
         return population;
     }
 
-    public  Chromosome getBest(Chromosome[] population){
+//    public  Chromosome getBest(Chromosome[] population){
+//        int bestIndex = -1;
+//        double minFitness = Double.POSITIVE_INFINITY;
+//        for (int i = 0; i < population.length; i++) {
+//            if (minFitness > population[i].getFitness()) {
+//                minFitness = population[i].getFitness();
+//                bestIndex = i;
+//            }
+//        }
+//        return  new Chromosome(population[bestIndex]);
+//    }
+    public  int getBestIndex(Chromosome[] population){
         int bestIndex = -1;
         double minFitness = Double.POSITIVE_INFINITY;
         for (int i = 0; i < population.length; i++) {
@@ -74,6 +120,6 @@ public class HybridGA {
                 bestIndex = i;
             }
         }
-        return  new Chromosome(population[bestIndex]);
+        return  bestIndex;
     }
 }

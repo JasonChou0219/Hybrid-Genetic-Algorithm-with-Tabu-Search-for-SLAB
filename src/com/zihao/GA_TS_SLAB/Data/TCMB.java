@@ -20,7 +20,7 @@ public class TCMB {
     public int getOp2(){
         return op2;
     }
-    public double getTimeConstraint(){
+    public int getTimeConstraint(){
         return timeConstraint;
     }
     @Override

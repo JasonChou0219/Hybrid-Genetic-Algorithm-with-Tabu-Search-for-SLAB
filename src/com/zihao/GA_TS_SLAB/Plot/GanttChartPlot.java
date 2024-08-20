@@ -8,6 +8,7 @@ import com.zihao.GA_TS_SLAB.GA.Schedule;
 import com.zihao.GA_TS_SLAB.GA.Utility;
 import com.zihao.GA_TS_SLAB.GA.HybridGA;
 
+import javax.print.attribute.standard.RequestingUserName;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -22,11 +23,12 @@ import java.util.*;
 public class GanttChartPlot {
     public static void main(String[] args) {
 
-        File parentDir = new File("src/Dataset/Gu2016/N1");
-//        File parentDir = new File("src/Dataset/Gu2016/N5");
+//        File parentDir = new File("src/Dataset/Gu2016/N1");
+        File parentDir = new File("src/Dataset/Gu2016/N5");
 //        File parentDir = new File("src/Dataset/qPCR.N5");
         Input input = new Input(parentDir);
         input.getProblemDesFromFile();
+//        input.testOutput();
         HybridGA hybridGA = new HybridGA();
         Schedule schedule = hybridGA.solve();
 
@@ -34,7 +36,9 @@ public class GanttChartPlot {
 //        List<Integer> OS = new ArrayList<>(List.of(1, 3, 5, 4, 10, 2, 7, 8, 9, 6, 11, 12, 13, 14, 16, 15, 17));
 //        List<Integer> MS = new ArrayList<>(List.of(5, 5, 5, 3, 6, 2, 6, 5, 1, 4, 6, 2, 5, 4, 5, 6, 2));
 //        Chromosome chromosome = new Chromosome(OS, MS);
+//        Chromosome chromosome = new Chromosome(new Random());
 //        Schedule schedule = chromosome.getSchedule();
+//        Schedule schedule = chromosome.decode();
 //        System.out.println("The fitness is " + chromosome.getFitness());
 
 

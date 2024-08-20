@@ -1,13 +1,10 @@
 package com.zihao.GA_TS_SLAB.GA;
 
 import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
+import com.zihao.GA_TS_SLAB.Data.TCMB;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Random;
-import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
+import java.sql.ParameterMetaData;
+import java.util.*;
 
 /**
  * Description: including selection, crossover and mutation for OS and MS chromosome
@@ -32,10 +29,22 @@ public class Operator {
         ArrayList<Chromosome> p = new ArrayList<>();
         Collections.addAll(p, parents);
         Collections.sort(p);
+
+//        System.out.println("All chromosomes after sorting by fitness (ascending):");
+//        for (int i = 0; i < p.size(); i++) {
+//            System.out.println("Chromosome " + i + " with fitness: " + p.get(i).getFitness());
+//        }
+
         for (int i = 0; i < elitNum; i++) {
             Chromosome o = p.get(i);
             elites[i] = new Chromosome(o);
+//            System.out.println("Selected elite chromosome " + i + " with fitness: " + elites[i].getFitness());
         }
+//        for (int i = 0; i < elitNum; i++) {
+//            Chromosome o = p.get(i);
+//            elites[i] = new Chromosome(o);
+//            System.out.println("Selected elite chromosome " + i + " with fitness: " + elites[i].getFitness());
+//        }
         return elites;
     }
 
@@ -49,6 +58,7 @@ public class Operator {
         int elitNum = (int) (elitRate * popNum);
         Chromosome[] tournamentSelection = new Chromosome[popNum - elitNum];
 
+
         for (int i = 0; i < popNum - elitNum; i++) {
             int n1 = r.nextInt(popNum);
             int n2 = r.nextInt(popNum);
@@ -60,8 +70,50 @@ public class Operator {
                 Chromosome o = parents[n1];
                 tournamentSelection[i] = new Chromosome(o);
             }
+//            System.out.println("Selected chromosome " + i + " with fitness: " + tournamentSelection[i].getFitness());
         }
+
         return tournamentSelection;
+    }
+
+
+    public static Chromosome[] RouletteWheelSelection(Chromosome[] parents) {
+
+        int popNum = Parameters.POP_NUM;
+        double elitRate = Parameters.ELIT_RATIO;
+
+        int elitNum = (int) (elitRate * popNum);
+        Chromosome[] wheelSelection = new Chromosome[popNum - elitNum];
+
+        double[] fitnessValues = new double[popNum];
+        double totalFitness = 0;
+
+        // Calculate total fitness and individual fitness values
+        for (int i = 0; i < popNum; i++) {
+            fitnessValues[i] = 1.0 / (parents[i].getFitness() + 1); //
+            totalFitness += fitnessValues[i];
+        }
+
+        // Normalize fitness values and create cumulative probability distribution
+        double[] cumulativeProbabilities = new double[popNum];
+        cumulativeProbabilities[0] = fitnessValues[0] / totalFitness;
+
+        for (int i = 1; i < popNum; i++) {
+            cumulativeProbabilities[i] = cumulativeProbabilities[i - 1] + fitnessValues[i] / totalFitness;
+        }
+
+        // Selection of individuals based on roulette wheel
+        for (int i = 0; i < popNum - elitNum; i++) {
+            double rand = r.nextDouble();
+            for (int j = 0; j < popNum; j++) {
+                if (rand <= cumulativeProbabilities[j]) {
+                    wheelSelection[i] = new Chromosome(parents[j]); // Create a copy of the selected chromosome
+                    break;
+                }
+            }
+        }
+
+        return wheelSelection;
     }
 
     /**
@@ -71,7 +123,9 @@ public class Operator {
     public static void Crossover(Chromosome[] parents) {
          int num = parents.length;
 
-        for (int i = 0; i < num; i += 2) {
+         // Might be odd if elist is odd
+        for (int i = 0; i < num & i + 1 < num; i += 2) {
+
             if (r.nextDouble() < Parameters.CROSSOVER_RATE) {
 
                 Chromosome parent1 = parents[i];
@@ -99,6 +153,7 @@ public class Operator {
                 parents[i].setMS(MS1);
                 parents[i + 1].setOS(OS2);
                 parents[i + 1].setMS(MS2);
+//                System.out.println("Performed crossover between chromosome " + i + " and " + (i + 1));
             }
         }
     }
@@ -278,6 +333,37 @@ public class Operator {
             }
             // update schedule and fitness after crossover and mutation
             parents[i] = new Chromosome(o);
+            if (r.nextDouble() < Parameters.DELAY_MUTATION_RATE){
+                Map<Integer,Integer> maxDelay = new HashMap<>();
+                for (TCMB tcmb : problemSetting.getTCMBList()) {
+                    int opA = tcmb.getOp1();
+                    int opB = tcmb.getOp2();
+
+                    int endA = o.getSchedule().getStartTimes().get(opA) + problemSetting.getProcessingTime()[opA - 1];
+                    int startB = o.getSchedule().getStartTimes().get(opB);
+
+                    int timeLag = startB - endA;
+
+                    if (timeLag > tcmb.getTimeConstraint()) {
+                        double delayMean = 0;
+                        double delayStdDev = Math.max(timeLag - tcmb.getTimeConstraint(), 1) / 2.0;
+                        int newDelay = (int) Math.round(r.nextGaussian() * delayStdDev + delayMean);
+                        if (newDelay > 0) {
+                            int curDelay = maxDelay.getOrDefault(opA, 0);
+                            if (curDelay != 0){
+                                maxDelay.put(opA, Math.min(curDelay, newDelay));
+                            }
+                        }
+                    }
+                }
+
+                for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()) {
+                    int opA = entry.getKey();
+                    int delay = entry.getValue();
+                    o.getDelay().put(opA, delay);
+                }
+                o.setDelay(maxDelay);
+            }
         }
     }
 

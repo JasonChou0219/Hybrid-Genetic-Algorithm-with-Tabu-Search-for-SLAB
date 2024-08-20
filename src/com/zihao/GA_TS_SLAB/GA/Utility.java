@@ -25,6 +25,7 @@ public class Utility {
         Map<Integer, Integer> startTimes = schedule.getStartTimes();
         int[] processingTimes = problemSetting.getProcessingTime();
 
+//        System.out.println("=================================================================");
         for (TCMB tcmb : listTCMB) {
             int s_a = startTimes.getOrDefault(tcmb.getOp1(), 0);
             int s_b = startTimes.getOrDefault(tcmb.getOp2(), 0);
@@ -34,11 +35,13 @@ public class Utility {
             int timeLag = s_b - (s_a + pi_a);
             if (timeLag > tcmb.getTimeConstraint()) {
                 sumViolation += timeLag - tcmb.getTimeConstraint();
+
 //                System.out.println("Operation " + tcmb.getOp1() + " starts at " + s_a + ", ends at " + (s_a + pi_a) +
 //                        ", Operation " + tcmb.getOp2() + " starts at " + s_b + ", ends at " + (s_b + pi_b) +
 //                        ", the time lag is " + timeLag + " which violates the constraint " + tcmb.getTimeConstraint());
             }
         }
+//        System.out.println("=================================================================");
         return makespan + Parameters.PENALTY_WEIGHT * sumViolation;
     }
 
@@ -72,6 +75,8 @@ public class Utility {
             operations.set(i, temp);
         }
 
+//        System.out.println("Topologically sorted operations: " + operations);
+
         return operations;
     }
 
@@ -88,6 +93,29 @@ public class Utility {
             compatibleMS.add(machine);
         }
         return compatibleMS;
+    }
+
+    public static void printViolation(Schedule schedule){
+        List<TCMB> listTCMB = problemSetting.getTCMBList();
+        Map<Integer, Integer> startTimes = schedule.getStartTimes();
+        int[] processingTimes = problemSetting.getProcessingTime();
+
+        System.out.println("========================================================================================");
+        for (TCMB tcmb : listTCMB) {
+            int s_a = startTimes.getOrDefault(tcmb.getOp1(), 0);
+            int s_b = startTimes.getOrDefault(tcmb.getOp2(), 0);
+            int pi_a = processingTimes[tcmb.getOp1() - 1];
+            int pi_b = processingTimes[tcmb.getOp2() - 1];
+
+            int timeLag = s_b - (s_a + pi_a);
+            if (timeLag > tcmb.getTimeConstraint()) {
+
+                System.out.println("Operation " + tcmb.getOp1() + " starts at " + s_a + ", ends at " + (s_a + pi_a) +
+                        ", Operation " + tcmb.getOp2() + " starts at " + s_b + ", ends at " + (s_b + pi_b) +
+                        ", the time lag is " + timeLag + " which violates the constraint " + tcmb.getTimeConstraint());
+            }
+        }
+        System.out.println("========================================================================================");
     }
 
 }
