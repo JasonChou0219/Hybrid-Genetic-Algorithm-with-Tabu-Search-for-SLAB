@@ -199,8 +199,9 @@ public class TabuSearch {
 
                 // 增大标准差，使搜索幅度更大
                 double delayStdDev = Math.max(timeLag - tcmb.getTimeConstraint(), 1);
+//                int delayIncrement = Math.min((int) Math.round(random.nextGaussian() * delayStdDev),
+//                        timeLag - tcmb.getTimeConstraint());
                 int delayIncrement = (int) Math.round(random.nextGaussian() * delayStdDev);
-
                 // 计算新的延迟值，并确保不为负数
                 int newDelay = Math.max(currentDelay + delayIncrement, 0);
 

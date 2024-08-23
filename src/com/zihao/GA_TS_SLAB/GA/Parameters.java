@@ -6,8 +6,6 @@ package com.zihao.GA_TS_SLAB.GA;
  */
 public class Parameters {
     // Population size
-//    public static final int POP_NUM = 500;
-//    public static  final int POP_NUM = 50;
     public static final int POP_NUM = 500;
     // Weight of penalty on accumulative time constraint violation
 //    public static final double PENALTY_WEIGHT = 0;
@@ -23,9 +21,11 @@ public class Parameters {
     public static final double OS_CROSSOVER_RATIO = 0.5;
     // Probability to trigger OS mutation of each position
     public static final double OS_MUTATION_RATE = 0.2;
+    public static final double OS_MAX_MUTATION_RATE = 0.6;
 //    public static final double OS_MUTATION_RATE = 0.8;
     // Probability to trigger MS reassignment for half position
     public static final double MS_MUTATION_RATE = 0.2;
+    public static final double MS_MAX_MUTATION_RATE = 0.6;
 
     // The ratio of reassignment of machine for MS
     public static final double MACHINE_MUTATION_RATIO = 0.5;
@@ -37,8 +37,6 @@ public class Parameters {
     public static final double DELAY_MUTATION_RATE = 0.2;
 
     public static final double DISTURB_RATIO = 0.2;
-//    public static final int MAX_GENERATION = 30;
-//    public static final int MAX_GENERATION = 10;
     // The time limit of the running the algorithm
 //    public static final int timeLimit = -1;
 

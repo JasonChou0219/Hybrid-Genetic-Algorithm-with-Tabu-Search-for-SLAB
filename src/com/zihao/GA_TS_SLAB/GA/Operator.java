@@ -305,6 +305,35 @@ public class Operator {
         MS2.addAll(Off2);
     }
 
+
+    private static int hammingDistance(List<Integer> seq1, List<Integer> seq2) {
+        int distance = 0;
+        for (int i = 0; i < seq1.size(); i++) {
+            if (!seq1.get(i).equals(seq2.get(i))) {
+                distance++;
+            }
+        }
+        return distance;
+    }
+
+    private static double calculateDiversity(List<Chromosome> population, boolean isOS) {
+        int popSize = population.size();
+        int seqLength = isOS ? population.get(0).getOS().size() : population.get(0).getMS().size();
+        int totalDistance = 0;
+
+        for (int i = 0; i < popSize; i++) {
+            for (int j = i + 1; j < popSize; j++) {
+                List<Integer> seq1 = isOS ? population.get(i).getOS() : population.get(i).getMS();
+                List<Integer> seq2 = isOS ? population.get(j).getOS() : population.get(j).getMS();
+                totalDistance += hammingDistance(seq1, seq2);
+            }
+        }
+
+        int maxPossibleDistance = seqLength * (popSize * (popSize - 1)) / 2;
+        return totalDistance / (double) maxPossibleDistance;
+    }
+
+
     /**
      * Description: mutation operation for OS and MS chromosome
      */
@@ -312,11 +341,25 @@ public class Operator {
     // remained to be done: adaptive mutation rate
     public static void Mutation(Chromosome[] parents) {
         int num = parents.length;
+        List<Chromosome> parentList = Arrays.asList(parents);
+
+        double osDiversity = calculateDiversity(parentList, true);
+        double msDiversity = calculateDiversity(parentList, false);
+
+        double osBaseRate = Parameters.OS_MUTATION_RATE;
+        double osMaxRate = Parameters.OS_MAX_MUTATION_RATE;
+        double msBaseRate = Parameters.MS_MUTATION_RATE;
+        double msMaxRate = Parameters.MS_MAX_MUTATION_RATE;
+
+        double osMutationRate = osBaseRate + (1 - osDiversity) * (osMaxRate - osBaseRate);
+        double msMutationRate = msBaseRate + (1 - msDiversity) * (msMaxRate - msBaseRate);
+
 
         for (int i = 0; i < num; i++){
             Chromosome o = parents[i];
             // OS mutation
-            if (r.nextDouble() < Parameters.OS_MUTATION_RATE) {
+//            if (r.nextDouble() < Parameters.OS_MUTATION_RATE) {
+            if (r.nextDouble() < osMutationRate) {
                 List<Integer> newOS = new ArrayList<>(o.getOS());
                 if (r.nextBoolean()) {
                     SwappingMutation(newOS);
@@ -326,10 +369,12 @@ public class Operator {
                 o.setOS(newOS);
             }
             // MS mutation
-            if (r.nextDouble() < Parameters.MS_MUTATION_RATE) {
-                List<Integer> newMS = new ArrayList<>(o.getMS());
-                MachineReassignmentMutation(newMS, o.getOS());
-                o.setMS(newMS);
+//            if (r.nextDouble() < Parameters.MS_MUTATION_RATE) {
+            if (r.nextDouble() < msMutationRate) {
+                    List<Integer> newMS = new ArrayList<>(o.getMS());
+                    MachineReassignmentMutation(newMS, o.getOS());
+                    o.setMS(newMS);
+
             }
             // update schedule and fitness after crossover and mutation
             parents[i] = new Chromosome(o);

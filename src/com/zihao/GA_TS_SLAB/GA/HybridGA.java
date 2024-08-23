@@ -43,7 +43,7 @@ public class HybridGA {
             // random disturbance
             children = Operator.RouletteWheelSelection(parents);
 
-            if (curGen - remain > 10) {
+            if (curGen - remain > Parameters.REMAIN_LOOP) {
                 int disturbNum = (int) (popNum * Parameters.DISTURB_RATIO);
                 for (int i = 0; i < disturbNum ; i++){
                     int index = r.nextInt(disturbNum);
