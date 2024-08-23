@@ -43,8 +43,10 @@ public class HybridGA {
             // random disturbance
             children = Operator.RouletteWheelSelection(parents);
 
-            if (curGen - remain > 20) {
-                for (int i = 0; i < (int) (popNum * Parameters.DISTURB_RATIO) ; i++){
+            if (curGen - remain > 10) {
+                int disturbNum = (int) (popNum * Parameters.DISTURB_RATIO);
+                for (int i = 0; i < disturbNum ; i++){
+                    int index = r.nextInt(disturbNum);
                     children[i] = new Chromosome(r);
                 }
                 remain = curGen;

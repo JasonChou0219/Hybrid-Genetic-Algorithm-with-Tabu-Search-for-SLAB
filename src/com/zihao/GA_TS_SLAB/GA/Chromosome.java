@@ -74,21 +74,17 @@ public class Chromosome implements Comparable<Chromosome> {
         }
 
         //random delay
-//        Map<Integer, Integer> maxDelay = new HashMap<>();
-//        for (TCMB tcmb : problemSetting.getTCMBList()) {
-//            int curDelay = maxDelay.getOrDefault(tcmb.getOp1(), 0);
-//            if (curDelay != 0) {
-//                maxDelay.put(tcmb.getOp1(), tcmb.getTimeConstraint());
-//            }
-//            else {
-//                maxDelay.put(tcmb.getOp1(), Math.min(curDelay,tcmb.getTimeConstraint()));
-//            }
-//        }
-//        double lambda = 0.1;
-//        for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()){
-//            int randomDelay = (int)
-//            this.delay.put(entry.getKey(), )
-//        }
+        Map<Integer, Integer> maxDelay = new HashMap<>();
+        double lambda = 0.1;
+        for (TCMB tcmb : problemSetting.getTCMBList()) {
+            int curDelay = maxDelay.getOrDefault(tcmb.getOp1(), 0);
+            if (curDelay == 0) {
+                int randomDelay = (int)Math.min(-Math.log(1 - r.nextDouble()) / lambda, 10);
+
+//                int randomDelay = (int)(-Math.log(1 - r.nextDouble()) / lambda);
+                maxDelay.put(tcmb.getOp1(), randomDelay);
+            }
+        }
 
         this.schedule = this.decode();
         this.fitness = Utility.calculateFitness(schedule);

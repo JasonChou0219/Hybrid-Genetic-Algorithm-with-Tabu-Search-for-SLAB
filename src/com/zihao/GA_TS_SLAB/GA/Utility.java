@@ -34,7 +34,9 @@ public class Utility {
 
             int timeLag = s_b - (s_a + pi_a);
             if (timeLag > tcmb.getTimeConstraint()) {
-                sumViolation += timeLag - tcmb.getTimeConstraint();
+//                sumViolation += timeLag - tcmb.getTimeConstraint();
+                int diff = timeLag - tcmb.getTimeConstraint();
+                sumViolation += Parameters.PENALTY_WEIGHT_2 * diff * diff + Parameters.PENALTY_WEIGHT_1 * diff;
 
 //                System.out.println("Operation " + tcmb.getOp1() + " starts at " + s_a + ", ends at " + (s_a + pi_a) +
 //                        ", Operation " + tcmb.getOp2() + " starts at " + s_b + ", ends at " + (s_b + pi_b) +
@@ -42,8 +44,10 @@ public class Utility {
             }
         }
 //        System.out.println("=================================================================");
-        return makespan + Parameters.PENALTY_WEIGHT * sumViolation;
+//        return makespan + Parameters.PENALTY_WEIGHT * sumViolation;
+        return makespan + sumViolation;
     }
+
 
     private static int calculateMakespan(Schedule schedule) {
         int makespan = 0;
