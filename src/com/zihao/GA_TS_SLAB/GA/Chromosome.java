@@ -335,12 +335,12 @@ public class Chromosome implements Comparable<Chromosome> {
     // lead to reverse descending sort by fitness when using Collection.sort
     @Override
     public int compareTo(Chromosome o) {
-        if (o.fitness < this.fitness) {
-            return 1;
+        if (this.fitness < o.fitness) {
+            return -1;
         } else if (this.fitness == o.fitness){
             return 0;
         } else{
-            return -1;
+            return 1;
         }
     }
 //    public static void main(String[] args) {
