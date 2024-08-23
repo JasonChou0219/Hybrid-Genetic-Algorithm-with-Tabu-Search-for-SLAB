@@ -64,10 +64,43 @@ public class TabuSearch {
         return bestChromosome;
     }
 
-    private List<Chromosome> generateNeighbors(Chromosome chromosome, List<String> tabuList) {
-        List<Chromosome> neighbors = new ArrayList<>();
-
-        Map<Integer, Integer> maxDelay = new HashMap<>();
+//    private List<Chromosome> generateNeighbors(Chromosome chromosome, List<String> tabuList) {
+//        List<Chromosome> neighbors = new ArrayList<>();
+//
+//        Map<Integer, Integer> maxDelay = new HashMap<>();
+////        for (TCMB tcmb : problemSetting.getTCMBList()) {
+////            int opA = tcmb.getOp1();
+////            int opB = tcmb.getOp2();
+////
+////            int endA = chromosome.getSchedule().getStartTimes().get(opA) + problemSetting.getProcessingTime()[opA - 1];
+////            int startB = chromosome.getSchedule().getStartTimes().get(opB);
+////
+////            int timeLag = startB - endA;
+////
+////            if (timeLag > tcmb.getTimeConstraint()) {
+////                double delayMean = 0;
+////                double delayStdDev = Math.max(timeLag - tcmb.getTimeConstraint(), 1) / 2.0;
+////                int newDelay = (int) Math.round(random.nextGaussian() * delayStdDev + delayMean);
+////                if (newDelay > 0) {
+////                    int curDelay = maxDelay.getOrDefault(opA, 0);
+////                    if (curDelay != 0){
+////                        maxDelay.put(opA, Math.min(curDelay, newDelay));
+////                    }
+////                }
+////            }
+////        }
+////
+////        for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()) {
+////            int opA = entry.getKey();
+////            int delay = entry.getValue();
+////            Chromosome newNeighbor = new Chromosome(chromosome);
+////            newNeighbor.getDelay().put(opA, delay);
+////            newNeighbor.updateScheduleAndFitness();
+////            String tabuKey = generateTabuKey(newNeighbor);
+////            if (!tabuList.contains(tabuKey)) {
+////                neighbors.add(newNeighbor);
+////            }
+////        }
 //        for (TCMB tcmb : problemSetting.getTCMBList()) {
 //            int opA = tcmb.getOp1();
 //            int opB = tcmb.getOp2();
@@ -80,27 +113,77 @@ public class TabuSearch {
 //            if (timeLag > tcmb.getTimeConstraint()) {
 //                double delayMean = 0;
 //                double delayStdDev = Math.max(timeLag - tcmb.getTimeConstraint(), 1) / 2.0;
-//                int newDelay = (int) Math.round(random.nextGaussian() * delayStdDev + delayMean);
-//                if (newDelay > 0) {
-//                    int curDelay = maxDelay.getOrDefault(opA, 0);
-//                    if (curDelay != 0){
-//                        maxDelay.put(opA, Math.min(curDelay, newDelay));
+//                int delay = (int) Math.round(random.nextGaussian() * delayStdDev + delayMean);
+//
+//                if (delay > 0) {
+//                    Chromosome newNeighbor = new Chromosome(chromosome);
+//                    newNeighbor.getDelay().put(opA, delay);
+//                    newNeighbor.updateScheduleAndFitness();
+//                    String tabuKey = generateTabuKey(newNeighbor);
+//                    if (!tabuList.contains(tabuKey)) {
+//                        neighbors.add(newNeighbor);
 //                    }
 //                }
 //            }
 //        }
 //
-//        for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()) {
-//            int opA = entry.getKey();
-//            int delay = entry.getValue();
-//            Chromosome newNeighbor = new Chromosome(chromosome);
-//            newNeighbor.getDelay().put(opA, delay);
-//            newNeighbor.updateScheduleAndFitness();
-//            String tabuKey = generateTabuKey(newNeighbor);
-//            if (!tabuList.contains(tabuKey)) {
-//                neighbors.add(newNeighbor);
+//        return neighbors;
+//    }
+
+//    private List<Chromosome> generateNeighbors(Chromosome chromosome, List<String> tabuList) {
+//        List<Chromosome> neighbors = new ArrayList<>();
+//
+//        Map<Integer, Integer> maxDelay = new HashMap<>();
+//
+//        for (TCMB tcmb : problemSetting.getTCMBList()) {
+//            int opA = tcmb.getOp1();
+//            int opB = tcmb.getOp2();
+//
+//            int endA = chromosome.getSchedule().getStartTimes().get(opA) + problemSetting.getProcessingTime()[opA - 1];
+//            int startB = chromosome.getSchedule().getStartTimes().get(opB);
+//
+//            int timeLag = startB - endA;
+//
+//            if (timeLag > tcmb.getTimeConstraint()) {
+//                double delayMean = 0;
+//                double delayStdDev = Math.max(timeLag - tcmb.getTimeConstraint(), 1) / 2.0;
+//                int delay = (int) Math.round(random.nextGaussian() * delayStdDev + delayMean);
+//
+//                if (delay > 0) {
+//                    maxDelay.put(opA, delay);
+//                }
 //            }
 //        }
+//
+//        List<Integer> opsToAdjust = new ArrayList<>(maxDelay.keySet());
+//        int numAdjustments = random.nextInt(opsToAdjust.size()) + 1;  // 随机选择1到N个操作进行调整
+//
+//        Chromosome newNeighbor = new Chromosome(chromosome);
+//        for (int i = 0; i < numAdjustments; i++) {
+//            int opIndex = random.nextInt(opsToAdjust.size());
+//            int opA = opsToAdjust.get(opIndex);
+//            int delay = maxDelay.get(opA);
+//
+////            Chromosome newNeighbor = new Chromosome(chromosome);
+//            newNeighbor.getDelay().put(opA, delay);
+////            newNeighbor.updateScheduleAndFitness();
+////            String tabuKey = generateTabuKey(newNeighbor);
+////            if (!tabuList.contains(tabuKey)) {
+////                neighbors.add(newNeighbor);
+////            }
+//        }
+//        newNeighbor.updateScheduleAndFitness();
+//        String tabuKey = generateTabuKey(newNeighbor);
+//        if (!tabuList.contains(tabuKey)) {
+//            neighbors.add(newNeighbor);
+//        }
+//
+//        return neighbors;
+//    }
+
+    private List<Chromosome> generateNeighbors(Chromosome chromosome, List<String> tabuList) {
+        List<Chromosome> neighbors = new ArrayList<>();
+
         for (TCMB tcmb : problemSetting.getTCMBList()) {
             int opA = tcmb.getOp1();
             int opB = tcmb.getOp2();
@@ -111,24 +194,34 @@ public class TabuSearch {
             int timeLag = startB - endA;
 
             if (timeLag > tcmb.getTimeConstraint()) {
-                double delayMean = 0;
-                double delayStdDev = Math.max(timeLag - tcmb.getTimeConstraint(), 1) / 2.0;
-                int delay = (int) Math.round(random.nextGaussian() * delayStdDev + delayMean);
+                // 获取当前的延迟
+                int currentDelay = chromosome.getDelay().getOrDefault(opA, 0);
 
-                if (delay > 0) {
-                    Chromosome newNeighbor = new Chromosome(chromosome);
-                    newNeighbor.getDelay().put(opA, delay);
-                    newNeighbor.updateScheduleAndFitness();
-                    String tabuKey = generateTabuKey(newNeighbor);
-                    if (!tabuList.contains(tabuKey)) {
-                        neighbors.add(newNeighbor);
-                    }
+                // 增大标准差，使搜索幅度更大
+                double delayStdDev = Math.max(timeLag - tcmb.getTimeConstraint(), 1);
+                int delayIncrement = (int) Math.round(random.nextGaussian() * delayStdDev);
+
+                // 计算新的延迟值，并确保不为负数
+                int newDelay = Math.max(currentDelay + delayIncrement, 0);
+
+                Chromosome newNeighbor = new Chromosome(chromosome);
+                newNeighbor.getDelay().put(opA, newDelay);
+                newNeighbor.updateScheduleAndFitness();
+                String tabuKey = generateTabuKey(newNeighbor);
+                if (!tabuList.contains(tabuKey)) {
+                    neighbors.add(newNeighbor);
                 }
             }
         }
 
+
         return neighbors;
     }
+
+
+
+
+
 
 
     private String generateTabuKey(Chromosome chromosome) {
