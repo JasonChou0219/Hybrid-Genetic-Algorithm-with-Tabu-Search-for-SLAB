@@ -5,13 +5,13 @@ import com.zihao.GA_TS_SLAB.Data.TCMB;
 
 import java.util.*;
 
-public class TabuSearch {
+public class TabuSearchDelay {
     private int maxIterations;
     private int tabuListSize;
     private ProblemSetting problemSetting;
     private Random random;
 
-    public TabuSearch(int maxIterations, int tabuListSize) {
+    public TabuSearchDelay(int maxIterations, int tabuListSize) {
         this.maxIterations = maxIterations;
         this.tabuListSize = tabuListSize;
         this.problemSetting = ProblemSetting.getInstance();

@@ -25,7 +25,11 @@ public class GanttChartPlot {
 
 //        File parentDir = new File("src/Dataset/Gu2016/N1");
         File parentDir = new File("src/Dataset/Gu2016/N5");
-//        File parentDir = new File("src/Dataset/qPCR.N5");
+//        File parentDir = new File("src/Dataset/qPCR/N5");
+//        File parentDir = new File("src/Dataset/qPCR_RNAseq/N5_N5");
+//        File parentDir = new File("src/Dataset/RNAseq/N5");
+
+
         Input input = new Input(parentDir);
         input.getProblemDesFromFile();
 //        input.testOutput();
