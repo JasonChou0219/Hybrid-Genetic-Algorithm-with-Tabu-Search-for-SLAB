@@ -26,7 +26,9 @@ public class Parameters {
     // Probability to trigger MS reassignment for half position
     public static final double MS_MUTATION_RATE = 0.2;
     public static final double MS_MAX_MUTATION_RATE = 0.6;
-    public static final double DELAY_SEARCH_RATIO = 0.05;
+    public static final double DELAY_SEARCH_RATIO = 0.01;
+    public static final double Insert_SEARCH_RATIO = 0.1;
+    public static final int TABU_ITERATION = 50;
     // The ratio of reassignment of machine for MS
     public static final double MACHINE_MUTATION_RATIO = 0.5;
     // The max number of revolution times of the population
