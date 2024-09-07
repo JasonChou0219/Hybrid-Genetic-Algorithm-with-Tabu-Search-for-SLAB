@@ -10,12 +10,14 @@ public class TabuSearchDelay {
     private int tabuListSize;
     private ProblemSetting problemSetting;
     private Random random;
+    private int maxNoImprovement;
 
-    public TabuSearchDelay(int maxIterations, int tabuListSize) {
+    public TabuSearchDelay(int maxIterations, int tabuListSize, int maxNoImprovement) {
         this.maxIterations = maxIterations;
         this.tabuListSize = tabuListSize;
         this.problemSetting = ProblemSetting.getInstance();
         this.random = new Random();
+        this.maxNoImprovement = maxNoImprovement;
     }
 
     public Chromosome optimize(Chromosome initialChromosome) {
@@ -23,10 +25,11 @@ public class TabuSearchDelay {
         Chromosome bestChromosome = new Chromosome(initialChromosome);
         double bestFitness = initialChromosome.getFitness();
 
-        List<String> tabuList = new ArrayList<>();
-
+        List<Integer> tabuList = new ArrayList<>();
+        int noImprovement = 0;
         for (int iteration = 0; iteration < maxIterations; iteration++) {
-            List<Chromosome> neighbors = generateNeighbors(initialChromosome, tabuList);
+
+            List<Chromosome> neighbors = generateNeighbors(initialChromosome, iteration, tabuList, noImprovement);
 
             Chromosome bestNeighbor = null;
             double bestNeighborFitness = Double.POSITIVE_INFINITY;
@@ -45,12 +48,15 @@ public class TabuSearchDelay {
 
             // Check if the best neighbor is better than the current best solution
             if (bestNeighborFitness < bestFitness) {
+                noImprovement = 0;
                 bestChromosome = new Chromosome(bestNeighbor);
                 bestFitness = bestNeighborFitness;
             }
-
+            else {
+                noImprovement++;
+            }
             // Update the tabu list
-            String tabuKey = generateTabuKey(bestNeighbor);
+            Integer tabuKey = generateTabuKey(bestNeighbor);
             tabuList.add(tabuKey);
             if (tabuList.size() > tabuListSize) {
                 tabuList.remove(0);  //
@@ -65,9 +71,8 @@ public class TabuSearchDelay {
     }
 
 
-    private List<Chromosome> generateNeighbors(Chromosome chromosome, List<String> tabuList) {
+    private List<Chromosome> generateNeighbors(Chromosome chromosome, int iteration, List<Integer> tabuList, int noImprovement) {
         List<Chromosome> neighbors = new ArrayList<>();
-
         for (TCMB tcmb : problemSetting.getTCMBList()) {
             int opA = tcmb.getOp1();
             int opB = tcmb.getOp2();
@@ -85,27 +90,81 @@ public class TabuSearchDelay {
                 double delayStdDev = Math.max(timeLag - tcmb.getTimeConstraint(), 1);
 //                int delayIncrement = Math.min((int) Math.round(random.nextGaussian() * delayStdDev),
 //                        timeLag - tcmb.getTimeConstraint());
+
+//                int delayIncrement = adaptiveDelayIncrement(delayStdDev, iteration, maxIterations, noImprovement, maxNoImprovement);
                 int delayIncrement = (int) Math.round(random.nextGaussian() * delayStdDev);
+
+//                int delayIncrement = 0;
+//                if (iteration < maxIterations * 0.7) {
+//                    // 前70%代数，进行较大的全局搜索
+//                    delayIncrement = (int) Math.round(random.nextGaussian() * delayStdDev);
+//                } else {
+//                    // 后30%代数，缩小步长以进行局部搜索
+//                    delayIncrement = adaptiveDelayIncrement(delayStdDev, iteration, maxIterations, noImprovement, maxNoImprovement);
+//                }
                 // 计算新的延迟值，并确保不为负数
                 int newDelay = Math.max(currentDelay + delayIncrement, 0);
 
                 Chromosome newNeighbor = new Chromosome(chromosome);
                 newNeighbor.getDelay().put(opA, newDelay);
                 newNeighbor.updateScheduleAndFitness();
-                String tabuKey = generateTabuKey(newNeighbor);
+                int tabuKey = generateTabuKey(newNeighbor);
                 if (!tabuList.contains(tabuKey)) {
                     neighbors.add(newNeighbor);
                 }
             }
         }
-
-
         return neighbors;
     }
 
 
-    private String generateTabuKey(Chromosome chromosome) {
-        // Generate a key based on the chromosome's schedule
-        return chromosome.getSchedule().getStartTimes().toString();
+//    private int adaptiveDelayIncrement(double delayStdDev, int iteration, int maxIterations, int noImprove, int maxNoImprovement) {
+//        double alpha = 10.0; // 控制衰减速率
+//        double progress = (double) iteration / maxIterations;  // 当前迭代进度
+//
+//        // 使用 Sigmoid 函数控制步长衰减
+//        double T = 1.0 / (1.0 + Math.exp(alpha * (progress - 0.5)));
+//
+//        // 结合 noImprove 的影响，如果没有改进次数较多，恢复较大步长
+//        if (noImprove >= maxNoImprovement) {
+//            T = 1.0;  // 恢复大步长
+//        }
+//
+//        // 调整步长
+//        int delayIncrement = (int) Math.round(random.nextGaussian() * delayStdDev * T);
+//        return delayIncrement;
+//    }
+    private int adaptiveDelayIncrement(double delayStdDev, int iteration, int maxIterations, int noImprove, int maxNoImprovement) {
+        double alpha = 10.0; // 控制步长衰减速率
+        double progress = (double) iteration / maxIterations;  // 当前迭代进度
+
+        // Sigmoid 控制步长衰减，保证随着进展，步长逐渐减小
+        double T = 1.0 / (1.0 + Math.exp(alpha * (progress - 0.5)));
+
+        // 将 noImprove 的影响加入步长衰减：无改进次数越多，步长逐渐减小
+        if (noImprove >= maxNoImprovement) {
+            double penalty = 1.0 / (1.0 + (double) noImprove / maxNoImprovement);
+            T *= penalty;  // 随着无改进次数增大，步长额外减小
+        }
+
+        // 调整步长，乘以 delayStdDev 控制搜索的范围
+        int delayIncrement = (int) Math.round(random.nextGaussian() * delayStdDev * T);
+
+        // 确保步长不为0，避免没有变化
+        return Math.max(delayIncrement, 1);
     }
+
+    private int generateTabuKey(Chromosome chromosome) {
+        Schedule schedule = chromosome.getSchedule();
+        int hash = 7;
+        for (int op : schedule.getStartTimes().keySet()) {
+            hash = 31 * hash + schedule.getStartTimes().get(op); // Hash for start time
+            hash = 31 * hash + schedule.getAssignedMachine().get(op); // Hash for machine assignment
+        }
+        return hash;
+    }
+//    private String generateTabuKey(Chromosome chromosome) {
+//        // Generate a key based on the chromosome's schedule
+//        return chromosome.getSchedule().getStartTimes().toString();
+//    }
 }

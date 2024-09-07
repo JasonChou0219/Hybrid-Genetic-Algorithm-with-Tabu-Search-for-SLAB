@@ -16,17 +16,23 @@ public class Schedule {
     private Map<Integer, Integer> startTimes;
     // list of operation that assigned to machine k
     private Map<Integer, List<Integer>> machineAssignments;
+    // machine of the operation
+    private Map<Integer, Integer> assignedMachine;
     // precedence relationship between operation a and b assigned on machine k
     private Map<Integer, Map<Integer, Map<Integer, Integer>>> y_abk; // 操作之间的相对顺序
 
 
-    public Schedule(Map<Integer, TreeSet<int[]>> idleTimePeriods, Map<Integer, Integer> earliestStartTimes, boolean[][] assignment, Map<Integer, Integer> startTimes, Map<Integer, List<Integer>> machineAssignments, Map<Integer, Map<Integer, Map<Integer, Integer>>> y_abk) {
+    public Schedule(Map<Integer, TreeSet<int[]>> idleTimePeriods, Map<Integer, Integer> earliestStartTimes,
+                    boolean[][] assignment, Map<Integer, Integer> startTimes, Map<Integer,
+            List<Integer>> machineAssignments, Map<Integer, Map<Integer,
+            Map<Integer, Integer>>> y_abk, Map<Integer, Integer>assignedMachine) {
         this.idleTimePeriods = idleTimePeriods;
         this.earliestStartTimes = earliestStartTimes;
         this.assignment = assignment;
         this.startTimes = startTimes;
         this.machineAssignments = machineAssignments;
         this.y_abk = y_abk;
+        this.assignedMachine = assignedMachine;
     }
 
     // get functions
@@ -52,6 +58,10 @@ public class Schedule {
 
     public Map<Integer, Map<Integer, Map<Integer, Integer>>> getY_abk() {
         return y_abk;
+    }
+
+    public Map<Integer,Integer> getAssignedMachine(){
+        return assignedMachine;
     }
 
 

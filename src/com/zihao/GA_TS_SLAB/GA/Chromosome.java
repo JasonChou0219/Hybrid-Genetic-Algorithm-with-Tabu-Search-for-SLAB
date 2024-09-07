@@ -85,7 +85,9 @@ public class Chromosome implements Comparable<Chromosome> {
                 maxDelay.put(tcmb.getOp1(), randomDelay);
             }
         }
-
+        // 这里进行了修改,需要注意!!
+        // 只进行maxDelay的计算,没有进行赋值
+        this.delay = maxDelay;
         this.schedule = this.decode();
         this.fitness = Utility.calculateFitness(schedule);
         checkPrecedenceConstraints();
@@ -94,19 +96,19 @@ public class Chromosome implements Comparable<Chromosome> {
 
     // Constructor by OS and MS, used to test GanttGraphPlot
 
-//    public Chromosome(List<Integer> OS, List<Integer> MS) {
-//        this.OS = new ArrayList<>(OS);
-//        this.MS = new ArrayList<>();
-//        int totalOpNum = problemSetting.getTotalOpNum();
-//
-//        // Check compatibility and replace incompatible machines
-//        r = new Random();
-//        this.MS = Utility.compatibleAdjust(MS,OS);
-//        this.schedule = decode();
-//        this.fitness = Utility.calculateFitness(schedule);
-//        checkCompatibleMachines();
-//        checkPrecedenceConstraints();
-//    }
+    public Chromosome(List<Integer> OS, List<Integer> MS) {
+        this.OS = new ArrayList<>(OS);
+        this.MS = new ArrayList<>();
+        int totalOpNum = problemSetting.getTotalOpNum();
+
+        // Check compatibility and replace incompatible machines
+        r = new Random();
+        this.MS = Utility.compatibleAdjust(MS,OS);
+        this.schedule = decode();
+        this.fitness = Utility.calculateFitness(schedule);
+        checkCompatibleMachines();
+        checkPrecedenceConstraints();
+    }
 
     // Remember to update schedule and fitness after changing OS and MS
     public void setOS(List<Integer>OS) {
@@ -231,9 +233,12 @@ public class Chromosome implements Comparable<Chromosome> {
 
         List<Integer> delayList = problemSetting.getDelayList();
 
+        Map<Integer, Integer> assignedMachine = new HashMap<>();
+
         for (int t = 0; t < totalOpNum; t++) {
             int a = OS.get(t);
             int k = MS.get(t);
+            assignedMachine.put(a, k);
             TreeSet<int[]> idlePeriods = idleTimePeriods.get(k);
             int es_a = earliestStartTimes.get(a);
 
@@ -319,7 +324,7 @@ public class Chromosome implements Comparable<Chromosome> {
         }
 
         // Return the schedule solution
-        return new Schedule(idleTimePeriods, earliestStartTimes, assignment, startTimes, machineAssignments, y_abk);
+        return new Schedule(idleTimePeriods, earliestStartTimes, assignment, startTimes, machineAssignments, y_abk, assignedMachine);
     }
 
 

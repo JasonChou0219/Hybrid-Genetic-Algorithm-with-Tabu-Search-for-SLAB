@@ -68,11 +68,11 @@ public class HybridGA {
             int searchDelayNum = (int) (popNum * Parameters.DELAY_SEARCH_RATIO);
 //            TabuSearch tabuSearch = new TabuSearch(100, 15);
 
-            TabuSearch tabuSearch = new TabuSearch(Parameters.TABU_ITERATION, 15);
+            TabuSearchDelay tabuSearchDelay = new TabuSearchDelay(Parameters.TABU_ITERATION, Parameters.TABU_SIZE, Parameters.TABU_IMPROVEMENT);
 
             // Apply Tabu Search to the top searchNum individuals
             for (int i = 0; i < searchDelayNum; i++) {
-                Chromosome optimizedChromosome = tabuSearch.optimize(parents[i]);
+                Chromosome optimizedChromosome = tabuSearchDelay.optimize(parents[i]);
                 parents[i] = optimizedChromosome;
             }
 

@@ -29,6 +29,8 @@ public class Parameters {
     public static final double DELAY_SEARCH_RATIO = 0.01;
     public static final double Insert_SEARCH_RATIO = 0.1;
     public static final int TABU_ITERATION = 50;
+    public static final int TABU_IMPROVEMENT = 7;
+    public static final int TABU_SIZE = 25;
     // The ratio of reassignment of machine for MS
     public static final double MACHINE_MUTATION_RATIO = 0.5;
     // The max number of revolution times of the population
