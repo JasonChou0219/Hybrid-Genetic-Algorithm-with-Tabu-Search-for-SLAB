@@ -9,39 +9,125 @@ import java.util.ArrayList;
 
 
 public class TabuSearchInsert {
-    private int maxIterations;
     private int tabuSize;
     private ProblemSetting problemSetting;
+    private List<Integer> tabuList;
+    private double bestFitness;
 
-
-    public TabuSearchInsert(int maxIterations, int tabuSize) {
-        this.maxIterations = maxIterations;
+    public TabuSearchInsert(int tabuSize) {
         this.tabuSize = tabuSize;
         this.problemSetting = ProblemSetting.getInstance();
+        this.tabuList = new ArrayList<>();
+        this.bestFitness = Double.POSITIVE_INFINITY;  // 初始最优适应度设为无穷大
     }
 
-    public List<Chromosome> generateNeighborhood(Chromosome o){
+
+
+    public Chromosome optimize(Chromosome current) {
+        List<Chromosome> neighbors = generateNeighborhood(current);  // 生成邻域解
+
+        Chromosome bestNeighbor = current;  // 初始化为当前解
+        double bestNeighborFitness = current.getFitness();
+
+        // 遍历邻域，寻找最优解
+        for (Chromosome neighbor : neighbors) {
+            double neighborFitness = neighbor.getFitness();
+            if (neighborFitness < bestNeighborFitness) {
+                bestNeighbor = neighbor;
+                bestNeighborFitness = neighborFitness;
+            }
+        }
+
+        // 返回最优解，如果邻域中没有更好的解，则返回当前解
+        return bestNeighbor;
+    }
+
+//    public List<Chromosome> generateNeighborhood(Chromosome current){
+//        int[] processingTime = problemSetting.getProcessingTime();
+//        List<Integer> OS = current.getOS();
+//        List<Integer> MS = current.getMS();
+//        Map<Integer, Integer> delay = current.getDelay();
+//        Map<Integer, List<Integer>> jobSuc = problemSetting.getDag().getAdjacencyList();
+//        Map<Integer, List<Integer>> jobPrev = problemSetting.getReverseDag().getAdjacencyList();
+//        Map<Integer, Integer> machineSuc = getMachinePrecedence(OS, MS);
+//        Map<Integer, Integer> machinePrev = getReverseMachinePrecedence(machineSuc);
+//        Map<Integer, Integer> L0ToV = getL0ToV(OS, jobPrev,machinePrev, processingTime, delay);
+//        Map<Integer, Integer> LUToN = getLUToN(OS, jobSuc, machineSuc, processingTime, delay);
+//
+//
+//        List<Chromosome> neighborhood = new ArrayList<>();
+//
+//
+////        if (bestChromosome == null || current.getFitness() < bestChromosome.getFitness()) {
+////            bestChromosome = new Chromosome(current);  // 将当前解作为初始最优解
+////        }
+//
+//        Chromosome bestNeighbor = current;  // 初始化为当前解
+//        double bestFitness = current.getFitness();
+//        for (int u : getCriticalPath(L0ToV, LUToN, processingTime)) {
+//            for (int i = 0; i < OS.size(); i++) {
+//                if (i != OS.indexOf(u)){
+//                    int v = OS.get(i);
+//                    int w = machineSuc.getOrDefault(v, -1);
+//                    // u is compatible to the machine v is assigned to
+//                    int vMachine = MS.get(i);
+//                    if (problemSetting.getOpToCompatibleList().get(u).contains(vMachine) &&
+//                            isFeasibleInsertion(u, v, w, L0ToV, LUToN, processingTime, jobSuc, jobPrev)) {
+//
+//                        List<Integer> newOS = new ArrayList<>(OS);
+//                        int index = newOS.indexOf((Integer) u);
+//                        newOS.remove(index);
+//                        newOS.add(i, u);
+//                        List<Integer> newMS = new ArrayList<>(MS);
+//                        newMS.remove(index);
+//                        newMS.add(i, vMachine);
+//                        Chromosome newChromosome = new Chromosome(newOS, newMS, current.getDelay());
+//
+//                        int tabuKey = generateTabuKey(newChromosome);  // 生成 Tabu Key
+//
+//                        // 检查是否在禁忌表中
+//                        if (!tabuList.contains(tabuKey)) {
+//                            neighborhood.add(newChromosome);
+//                            tabuList.add(tabuKey);
+//
+//                            if (tabuList.size() > tabuSize) {
+//                                tabuList.remove(0);
+//                            }
+//                        }
+//                    }
+//
+//                    }
+//                }
+//            }
+//        }
+//        return neighborhood;
+//    }
+    public List<Chromosome> generateNeighborhood(Chromosome current) {
         int[] processingTime = problemSetting.getProcessingTime();
-        Map<Integer, Integer> delay = o.getDelay();
+        List<Integer> OS = current.getOS();
+        List<Integer> MS = current.getMS();
+        Map<Integer, Integer> delay = current.getDelay();
         Map<Integer, List<Integer>> jobSuc = problemSetting.getDag().getAdjacencyList();
         Map<Integer, List<Integer>> jobPrev = problemSetting.getReverseDag().getAdjacencyList();
-        Map<Integer, Integer> machineSuc = getMachinePrecedence(o.getOS(), o.getMS());
+        Map<Integer, Integer> machineSuc = getMachinePrecedence(OS, MS);
         Map<Integer, Integer> machinePrev = getReverseMachinePrecedence(machineSuc);
-        Map<Integer, Integer> L0ToV = getL0ToV(o.getOS(), jobPrev,machinePrev, processingTime, delay);
-        Map<Integer, Integer> LUToN = getLUToN(o.getOS(), jobSuc, machineSuc, processingTime, delay);
-        List<Integer> OS = o.getOS();
-        List<Integer> MS = o.getMS();
+        Map<Integer, Integer> L0ToV = getL0ToV(OS, jobPrev, machinePrev, processingTime, delay);
+        Map<Integer, Integer> LUToN = getLUToN(OS, jobSuc, machineSuc, processingTime, delay);
 
         List<Chromosome> neighborhood = new ArrayList<>();
+
+        // 遍历关键路径上的操作 u，尝试插入到其他位置
         for (int u : getCriticalPath(L0ToV, LUToN, processingTime)) {
             for (int i = 0; i < OS.size(); i++) {
-                if (i != OS.indexOf(u)){
+                if (i != OS.indexOf(u)) {
                     int v = OS.get(i);
                     int w = machineSuc.getOrDefault(v, -1);
-                    // u is compatible to the machine v is assigned to
                     int vMachine = MS.get(i);
+
+                    // 判断 u 是否可以插入到机器 v 对应的位置
                     if (problemSetting.getOpToCompatibleList().get(u).contains(vMachine) &&
                             isFeasibleInsertion(u, v, w, L0ToV, LUToN, processingTime, jobSuc, jobPrev)) {
+
                         List<Integer> newOS = new ArrayList<>(OS);
                         int index = newOS.indexOf((Integer) u);
                         newOS.remove(index);
@@ -49,15 +135,26 @@ public class TabuSearchInsert {
                         List<Integer> newMS = new ArrayList<>(MS);
                         newMS.remove(index);
                         newMS.add(i, vMachine);
-                        Chromosome newChromosome = new Chromosome(newOS, newMS);
-                        neighborhood.add(newChromosome);
+                        Chromosome newChromosome = new Chromosome(newOS, newMS, current.getDelay());
+
+                        int tabuKey = generateTabuKey(newChromosome);  // 生成 Tabu Key
+
+                        // 检查是否在禁忌表中
+                        if (!tabuList.contains(tabuKey)) {
+                            neighborhood.add(newChromosome);
+                            tabuList.add(tabuKey);
+
+                            // 如果 tabuList 超出大小限制，移除最早的
+                            if (tabuList.size() > tabuSize) {
+                                tabuList.remove(0);
+                            }
+                        }
                     }
                 }
             }
         }
         return neighborhood;
     }
-
 
     public Map<Integer, Integer> getMachinePrecedence(List<Integer> OS, List<Integer> MS) {
         Map<Integer, Integer> machinePrecedenceMap = new HashMap<>();
@@ -212,6 +309,16 @@ public class TabuSearchInsert {
         }
 
         return criticalPath;
+    }
+
+    private int generateTabuKey(Chromosome chromosome) {
+        Schedule schedule = chromosome.getSchedule();
+        int hash = 7;
+        for (int op : schedule.getStartTimes().keySet()) {
+            hash = 31 * hash + schedule.getStartTimes().get(op); // Hash for start time
+            hash = 31 * hash + schedule.getAssignedMachine().get(op); // Hash for machine assignment
+        }
+        return hash;
     }
 
 }

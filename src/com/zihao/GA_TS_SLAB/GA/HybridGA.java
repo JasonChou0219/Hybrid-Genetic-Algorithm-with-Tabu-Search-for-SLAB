@@ -68,12 +68,21 @@ public class HybridGA {
             int searchDelayNum = (int) (popNum * Parameters.DELAY_SEARCH_RATIO);
 //            TabuSearch tabuSearch = new TabuSearch(100, 15);
 
+
+
+            TabuSearchInsert tabuSearchInsert = new TabuSearchInsert(100);
             TabuSearchDelay tabuSearchDelay = new TabuSearchDelay(Parameters.TABU_ITERATION, Parameters.TABU_SIZE, Parameters.TABU_IMPROVEMENT);
+
+
+//            for (int i = 0; i < searchInsertNum; i++) {
+//                parents[i] = tabuSearchInsert.optimize(parents[i]);  // 执行插入禁忌搜索，返回优化后的个体
+//            }
 
             // Apply Tabu Search to the top searchNum individuals
             for (int i = 0; i < searchDelayNum; i++) {
                 Chromosome optimizedChromosome = tabuSearchDelay.optimize(parents[i]);
                 parents[i] = optimizedChromosome;
+//                parents[i] = tabuSearchDelay.optimize(parents[i]);
             }
 
             currentBest = parents[getBestIndex(parents)];
@@ -116,4 +125,6 @@ public class HybridGA {
         }
         return  bestIndex;
     }
+
+
 }

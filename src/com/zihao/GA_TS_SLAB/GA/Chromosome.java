@@ -96,7 +96,7 @@ public class Chromosome implements Comparable<Chromosome> {
 
     // Constructor by OS and MS, used to test GanttGraphPlot
 
-    public Chromosome(List<Integer> OS, List<Integer> MS) {
+    public Chromosome(List<Integer> OS, List<Integer> MS, Map<Integer, Integer> delay) {
         this.OS = new ArrayList<>(OS);
         this.MS = new ArrayList<>();
         int totalOpNum = problemSetting.getTotalOpNum();
@@ -104,6 +104,7 @@ public class Chromosome implements Comparable<Chromosome> {
         // Check compatibility and replace incompatible machines
         r = new Random();
         this.MS = Utility.compatibleAdjust(MS,OS);
+        this.delay = delay;
         this.schedule = decode();
         this.fitness = Utility.calculateFitness(schedule);
         checkCompatibleMachines();
