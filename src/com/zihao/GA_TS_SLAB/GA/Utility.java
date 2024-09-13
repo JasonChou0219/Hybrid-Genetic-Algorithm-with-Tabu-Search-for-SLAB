@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Queue;
+import java.util.LinkedList;
 
 
 /**
@@ -83,6 +85,43 @@ public class Utility {
 
         return operations;
     }
+
+    public static List<Integer> kahnTopologicalSort(List<Integer> operations) {
+        int [][] orderMatrix = problemSetting.getOrderMatrix();
+        int n = operations.size();
+        int[] inDegree = new int[n + 1];
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= n; j++) {
+                if (orderMatrix[i][j] == 1) {
+                    inDegree[j]++;
+                }
+            }
+        }
+
+        Queue<Integer> queue = new LinkedList<>();
+        for (int i : operations) {
+            if (inDegree[i] == 0) {
+                queue.add(i);
+            }
+        }
+
+        List<Integer> sortedOperations = new ArrayList<>();
+        while (!queue.isEmpty()) {
+            int op = queue.poll();
+            sortedOperations.add(op);
+
+            for (int j = 1; j <= n; j++) {
+                if (orderMatrix[op][j] == 1) {
+                    if (--inDegree[j] == 0) {
+                        queue.add(j);
+                    }
+                }
+            }
+        }
+
+        return sortedOperations;
+    }
+
 
     public static List<Integer> compatibleAdjust(List<Integer> MS, List<Integer> OS){
         Random r = new Random();

@@ -65,6 +65,7 @@ public class Chromosome implements Comparable<Chromosome> {
         // Perform topological sort on the random permutation using the orderMatrix
         List<Integer> topoSortedOperations = Utility.topologicalSort(operations);
 
+//        List<Integer> topoSortedOperations = Utility.kahnTopologicalSort(operations);
         // Generate MS based on the topologically sorted OS
         for (int op : topoSortedOperations) {
             OS.add(op);
@@ -79,7 +80,8 @@ public class Chromosome implements Comparable<Chromosome> {
         for (TCMB tcmb : problemSetting.getTCMBList()) {
             int curDelay = maxDelay.getOrDefault(tcmb.getOp1(), 0);
             if (curDelay == 0) {
-                int randomDelay = (int)Math.min(-Math.log(1 - r.nextDouble()) / lambda, 10);
+                // 存疑
+                int randomDelay = (int)Math.min(-Math.log(1 - r.nextDouble()) / lambda, 20);
 
 //                int randomDelay = (int)(-Math.log(1 - r.nextDouble()) / lambda);
                 maxDelay.put(tcmb.getOp1(), randomDelay);
