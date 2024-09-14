@@ -373,34 +373,83 @@ public class Operator {
     }
 
 
-    private static int hammingDistance(List<Integer> seq1, List<Integer> seq2) {
-        int distance = 0;
-        for (int i = 0; i < seq1.size(); i++) {
-            if (!seq1.get(i).equals(seq2.get(i))) {
-                distance++;
+
+
+    public static class EditDistance {
+        public int calculateEditDistance(int[] a, int[] b) {
+            int n = a.length;
+            int m = b.length;
+            int[][] dp = new int[n + 1][m + 1];
+
+            // 初始化dp数组
+            for (int i = 0; i <= n; i++) {
+                dp[i][0] = i;
             }
+            for (int j = 0; j <= m; j++) {
+                dp[0][j] = j;
+            }
+
+            // 计算编辑距离
+            for (int i = 1; i <= n; i++) {
+                for (int j = 1; j <= m; j++) {
+                    if (a[i - 1] == b[j - 1]) {
+                        dp[i][j] = dp[i - 1][j - 1];
+                    } else {
+                        dp[i][j] = Math.min(dp[i - 1][j - 1], // 替换
+                                Math.min(dp[i - 1][j],   // 删除
+                                        dp[i][j - 1])   // 插入
+                        ) + 1;
+                    }
+                }
+            }
+
+            return dp[n][m];
         }
-        return distance;
     }
 
-//    private static double calculateDiversity(List<Chromosome> population, boolean isOS) {
-//        int popSize = population.size();
-//        int seqLength = isOS ? population.get(0).getOS().size() : population.get(0).getMS().size();
-//        int totalDistance = 0;
-//
-//        for (int i = 0; i < popSize; i++) {
-//            for (int j = i + 1; j < popSize; j++) {
-//                List<Integer> seq1 = isOS ? population.get(i).getOS() : population.get(i).getMS();
-//                List<Integer> seq2 = isOS ? population.get(j).getOS() : population.get(j).getMS();
-//                totalDistance += hammingDistance(seq1, seq2);
-//            }
-//        }
-//
-//        int maxPossibleDistance = seqLength * (popSize * (popSize - 1)) / 2;
-//        return totalDistance / (double) maxPossibleDistance;
-//    }
+    /**
+     * 使用采样的方式计算种群的多样性
+     * @param population 种群
+     * @param isOS 表示是 OS 还是 MS
+     * @param sampleSize 采样的对数
+     * @return 近似多样性
+     */
+    private static double calculateSampledDiversity(List<Chromosome> population, boolean isOS, int sampleSize) {
+        int popSize = population.size();
+        EditDistance editDistance = new EditDistance();
+        double totalDistance = 0.0;
 
+        // 进行采样
+        for (int i = 0; i < sampleSize; i++) {
+            // 随机选择两个不同的个体
+            int index1 = r.nextInt(popSize);
+            int index2 = r.nextInt(popSize);
+            while (index1 == index2) {
+                index2 = r.nextInt(popSize);
+            }
 
+            // 获取个体的 OS 或 MS
+            List<Integer> seq1 = isOS ? population.get(index1).getOS() : population.get(index1).getMS();
+            List<Integer> seq2 = isOS ? population.get(index2).getOS() : population.get(index2).getMS();
+
+            // 将 List<Integer> 转换为 int[] 以计算编辑距离
+            int[] arr1 = seq1.stream().mapToInt(Integer::intValue).toArray();
+            int[] arr2 = seq2.stream().mapToInt(Integer::intValue).toArray();
+
+            // 计算编辑距离并累加
+            totalDistance += editDistance.calculateEditDistance(arr1, arr2);
+        }
+
+        // 返回平均距离，作为多样性指标
+        double avgDistance = totalDistance / sampleSize;
+
+        // 归一化多样性到 [0, 1]
+        double maxPossibleDistance = (isOS ? population.get(0).getOS().size() : population.get(0).getMS().size());
+        double normalizedDiversity = avgDistance / maxPossibleDistance;
+
+        // 确保归一化后的多样性在 [0, 1] 范围内
+        return Math.max(0.0, Math.min(1.0, normalizedDiversity));
+    }
     /**
      * Description: mutation operation for OS and MS chromosome
      */
@@ -410,11 +459,28 @@ public class Operator {
         int num = parents.length;
         List<Chromosome> parentList = Arrays.asList(parents);
 
-        double osDiversity = calculateClusterDiversity(parentList, true, 5); // 5 表示聚类的数量
-        double msDiversity = calculateClusterDiversity(parentList, false, 5);
-
+//        double osDiversity = calculateClusterDiversity(parentList, true, 5); // 5 表示聚类的数量
+//        double msDiversity = calculateClusterDiversity(parentList, false, 5);
+        // 55 60 65
+//        double osDiversity = calculateDBSCANDiversity(parentList, true, 65.0, 1); // 调整 eps 和 minPts
+////        double osDiversity = 1;
+//        double msDiversity = calculateDBSCANDiversity(parentList, false, 40.0, 1);
+////        double msDiversity = 1;
+//
+//
+//        double osDiversity = calculateAverageEditDistanceDiversity(parentList, true);
+//        double msDiversity = calculateAverageEditDistanceDiversity(parentList, false);
 //        double osDiversity = calculateDiversity(parentList, true);
 //        double msDiversity = calculateDiversity(parentList, false);
+
+//        System.out.println("OS 多样性: " + osDiversity);
+//        System.out.println("MS 多样性: " + msDiversity);
+
+        double osDiversity = calculateSampledDiversity(parentList, true, 50); // 调整采样对数，例如50
+        double msDiversity = calculateSampledDiversity(parentList, false, 50);
+
+
+
 
         System.out.println("OS 多样性: " + osDiversity);
         System.out.println("MS 多样性: " + msDiversity);
@@ -425,8 +491,14 @@ public class Operator {
         double msMaxRate = Parameters.MS_MAX_MUTATION_RATE;
 
 
-        double osMutationRate = osBaseRate + (1 - osDiversity) * (osMaxRate - osBaseRate);
-        double msMutationRate = msBaseRate + (1 - msDiversity) * (msMaxRate - msBaseRate);
+//        double osMutationRate = osBaseRate + (1 - osDiversity) * (osMaxRate - osBaseRate);
+//        double msMutationRate = msBaseRate + (1 - msDiversity) * (msMaxRate - msBaseRate);
+
+
+        double osMutationRate = calculateSechMutationRate(osDiversity, osBaseRate, osMaxRate, 6.0, 0.5);
+        double msMutationRate = calculateSechMutationRate(msDiversity, msBaseRate, msMaxRate, 18.0, 0.54);
+//        double osMutationRate = osMaxRate;
+//        double msMutationRate = msMaxRate;
 
         System.out.println("OS 变异率: " + osMutationRate);
         System.out.println("MS 变异率: " + msMutationRate);
@@ -553,107 +625,15 @@ public class Operator {
         }
     }
 
-    private static double calculateClusterDiversity(List<Chromosome> population, boolean isOS, int k) {
-        // 将种群转换为聚类所需的特征向量列表
-        List<List<Integer>> features = new ArrayList<>();
-        for (Chromosome chrom : population) {
-            features.add(isOS ? chrom.getOS() : chrom.getMS());
-        }
+    private static double calculateSechMutationRate(double diversity, double baseRate, double maxRate, double alpha, double beta) {
+        // 调整参数 a 以控制曲线的陡峭程度
+//        double a = 6.0; // 增大 a 的值使曲线在中间更陡峭
+        double mutationRate = baseRate + (maxRate - baseRate) * (1.0 / Math.cosh(alpha * (diversity - beta)));
 
-        // 执行 K-means 聚类
-        List<Integer> labels = kMeansClustering(features, k);
+        // 确保变异率在 [baseRate, maxRate] 范围内
+        mutationRate = Math.max(baseRate, Math.min(mutationRate, maxRate));
 
-        // 计算每个聚类的大小
-        Map<Integer, Integer> clusterSizes = new HashMap<>();
-        for (int label : labels) {
-            clusterSizes.put(label, clusterSizes.getOrDefault(label, 0) + 1);
-        }
-
-        // 计算多样性，使用基尼指数（Gini Index）衡量
-        double diversity = 0.0;
-        int popSize = population.size();
-        for (int size : clusterSizes.values()) {
-            double proportion = (double) size / popSize;
-            diversity += proportion * proportion;
-        }
-
-        return 1 - diversity; // 多样性 = 1 - 基尼指数
+        return mutationRate;
     }
-
-    private static List<Integer> kMeansClustering(List<List<Integer>> data, int k) {
-        // 初始化聚类中心
-        List<List<Integer>> centroids = new ArrayList<>();
-        for (int i = 0; i < k; i++) {
-            centroids.add(new ArrayList<>(data.get(i)));
-        }
-
-        List<Integer> labels = new ArrayList<>(Collections.nCopies(data.size(), -1));
-        boolean changed = true;
-        int maxIterations = 100;
-
-        while (changed && maxIterations-- > 0) {
-            changed = false;
-
-            // 分配数据点到最近的聚类中心
-            for (int i = 0; i < data.size(); i++) {
-                int nearestCentroid = -1;
-                double nearestDistance = Double.MAX_VALUE;
-
-                for (int j = 0; j < k; j++) {
-                    double distance = euclideanDistance(data.get(i), centroids.get(j));
-                    if (distance < nearestDistance) {
-                        nearestDistance = distance;
-                        nearestCentroid = j;
-                    }
-                }
-
-                if (labels.get(i) != nearestCentroid) {
-                    labels.set(i, nearestCentroid);
-                    changed = true;
-                }
-            }
-
-            // 计算新的聚类中心
-            List<List<Integer>> newCentroids = new ArrayList<>();
-            for (int j = 0; j < k; j++) {
-                newCentroids.add(new ArrayList<>(Collections.nCopies(data.get(0).size(), 0)));
-            }
-            int[] counts = new int[k];
-
-            for (int i = 0; i < data.size(); i++) {
-                int label = labels.get(i);
-                List<Integer> point = data.get(i);
-                List<Integer> centroid = newCentroids.get(label);
-
-                for (int d = 0; d < point.size(); d++) {
-                    centroid.set(d, centroid.get(d) + point.get(d));
-                }
-                counts[label]++;
-            }
-
-            for (int j = 0; j < k; j++) {
-                if (counts[j] > 0) {
-                    List<Integer> centroid = newCentroids.get(j);
-                    for (int d = 0; d < centroid.size(); d++) {
-                        centroid.set(d, centroid.get(d) / counts[j]);
-                    }
-                }
-            }
-
-            centroids = newCentroids;
-        }
-
-        return labels;
-    }
-
-    private static double euclideanDistance(List<Integer> point1, List<Integer> point2) {
-        double sum = 0.0;
-        for (int i = 0; i < point1.size(); i++) {
-            sum += Math.pow(point1.get(i) - point2.get(i), 2);
-        }
-        return Math.sqrt(sum);
-    }
-
-
 
 }

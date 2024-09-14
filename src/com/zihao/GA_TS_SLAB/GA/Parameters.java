@@ -7,7 +7,7 @@ package com.zihao.GA_TS_SLAB.GA;
 public class Parameters {
     // Population size
     public static final int POP_NUM = 500;
-//    public static final int POP_NUM = 200;
+//    public static final int POP_NUM = 100;
     // Weight of penalty on accumulative time constraint violation
 //    public static final double PENALTY_WEIGHT = 0;
 //    public static final double PENALTY_WEIGHT = 15.0;
@@ -25,8 +25,8 @@ public class Parameters {
     public static final double OS_MAX_MUTATION_RATE = 0.6;
 //    public static final double OS_MUTATION_RATE = 0.8;
     // Probability to trigger MS reassignment for half position
-    public static final double MS_MUTATION_RATE = 0.2;
-    public static final double MS_MAX_MUTATION_RATE = 0.6;
+    public static final double MS_MUTATION_RATE = 0.3;
+    public static final double MS_MAX_MUTATION_RATE = 0.5;
     public static final double DELAY_SEARCH_RATIO = 0.05;
     public static final double INSERT_SEARCH_RATIO = 0.02;
     public static final int TABU_MAX_ITERATION = 35;
@@ -38,6 +38,7 @@ public class Parameters {
     // The max number of revolution times of the population
     public static final int MAX_GENERATION = 200;
 //    public static final int MAX_GENERATION = 5;
+
     // the times that trigger random disturbance
 
     public static final int REMAIN_LOOP = 5;

@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="github.haifengl.smile.core" type="repository">
+    <properties maven-id="com.github.haifengl:smile-core:3.0.2" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/haifengl/smile-core/3.0.2/smile-core-3.0.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/haifengl/smile-base/3.0.2/smile-base-3.0.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/epam/parso/2.0.14/parso-2.0.14.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/commons/commons-csv/1.10.0/commons-csv-1.10.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/2.0.7/slf4j-api-2.0.7.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -16,5 +16,6 @@
     <orderEntry type="library" name="javafx-swt" level="project" />
     <orderEntry type="library" name="jfree.jfreechart" level="project" />
     <orderEntry type="library" name="Python 3.9 interpreter library" level="application" />
+    <orderEntry type="library" name="github.haifengl.smile.core" level="project" />
   </component>
 </module>
