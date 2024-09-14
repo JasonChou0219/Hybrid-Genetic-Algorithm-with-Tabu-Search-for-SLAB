@@ -46,6 +46,8 @@ public class Parameters {
     public static final double DELAY_MUTATION_RATE = 0.4;
 
     public static final double DISTURB_RATIO = 0.3;
+
+    public static final double DELAY_WITHDRAW_PROBABILITY = 0.15;
     // The time limit of the running the algorithm
 //    public static final int timeLimit = -1;
 
