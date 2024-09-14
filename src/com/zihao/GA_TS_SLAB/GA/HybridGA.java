@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.Arrays;
 import java.util.Collections;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.stream.Collectors;
 
 import com.zihao.GA_TS_SLAB.GA.Parameters;
 import com.zihao.GA_TS_SLAB.Data.Input;
@@ -133,7 +136,9 @@ public class HybridGA {
                 for (int j = 0; j < parents.length; j++) {
                     if (parents[j].equals(selectedChromosome)) {
                         parents[j] = optimizedChromosome;  // 更新选择的个体为优化后的个体
+//                        System.out.println("GO here");
                         break;
+
                     }
                 }
             }
@@ -165,14 +170,81 @@ public class HybridGA {
         best.checkPrecedenceConstraints();
 //
 //        System.out.println("Final population fitness values:");
-//        for (int i = 0; i < 150; i++) {
-////            System.out.println(i + ": Fitness = " + parents[i].getFitness() + "; OS = " + parents[i].getOS()  + "; MS = " +
-////                    parents[i].getMS() + "; Delay :" + parents[i].getDelay());
+        for (int i = 0; i < 500; i++) {
 //            System.out.println(i + ": Fitness = " + parents[i].getFitness() + "; OS = " + parents[i].getOS()  + "; MS = " +
-//                    parents[i].getMS()) ;
+//                    parents[i].getMS() + "; Delay :" + parents[i].getDelay());
+            System.out.println(i + ": Fitness = " + parents[i].getFitness() + "; OS = " + parents[i].getOS()  + "; MS = " +
+                    parents[i].getMS()) ;
+        }
+
+        saveFeatureVectors(parents);
+
+//        File outputFile = new File("src/com/zihao/GA_TS_SLAB/Plot/population_data.csv");
+//        exportPopulationData(outputFile, parents);
+//        File dbscanDataFile = new File("src/com/zihao/GA_TS_SLAB/Plot/dbscan_data.csv");
+//        try (FileWriter writer = new FileWriter(dbscanDataFile)) {
+//            writer.append("Fitness,OS,MS\n");
+//            for (Chromosome individual : parents) {
+//                // Join OS and MS into comma-separated strings
+//                String osString = String.join(",", individual.getOS().stream().map(Object::toString).collect(Collectors.toList()));
+//                String msString = String.join(",", individual.getMS().stream().map(Object::toString).collect(Collectors.toList()));
+//                writer.append(individual.getFitness() + "," + osString + "," + msString + "\n");
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
 //        }
 
         return best.getSchedule();
+    }
+
+    private void generateDBSCANDataFile(Chromosome[] parents) {
+        File dbscanFile = new File("src/com/zihao/GA_TS_SLAB/Plot/dbscan_data.csv");
+        try (FileWriter writer = new FileWriter(dbscanFile)) {
+            writer.append("Fitness,OS,MS\n");
+            for (Chromosome chromosome : parents) {
+                writer.append(chromosome.getFitness() + "," +
+                        chromosome.getOS().toString().replace("[", "").replace("]", "").replace(" ", "") + "," +
+                        chromosome.getMS().toString().replace("[", "").replace("]", "").replace(" ", "") + "\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println("DBSCAN data exported to " + dbscanFile.getAbsolutePath());
+    }
+
+    private void saveFeatureVectors(Chromosome[] chromosomes) {
+        try (FileWriter writer = new FileWriter("population_features.csv")) {
+            for (Chromosome chrom : chromosomes) {
+                double[] features = chrom.getFeatureVector();
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < features.length; i++) {
+                    sb.append(features[i]);
+                    if (i < features.length - 1) {
+                        sb.append(",");
+                    }
+                }
+                writer.write(sb.toString());
+                writer.write("\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void exportPopulationData(File outputFile, Chromosome[] parents) {
+        try (FileWriter writer = new FileWriter(outputFile)) {
+            writer.append("Fitness,OS,MS\n");  // Header
+            for (Chromosome chromosome : parents) {  // Assuming 'parents' is the final population
+                // Convert OS and MS to comma-separated strings
+                String osString = chromosome.getOS().stream().map(String::valueOf).collect(Collectors.joining(","));
+                String msString = chromosome.getMS().stream().map(String::valueOf).collect(Collectors.joining(","));
+                writer.append(chromosome.getFitness() + "," + osString + "," + msString + "\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Population data exported to " + outputFile.getAbsolutePath());
     }
 
 

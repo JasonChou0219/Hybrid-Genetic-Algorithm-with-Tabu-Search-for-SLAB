@@ -330,6 +330,19 @@ public class Chromosome implements Comparable<Chromosome> {
         return new Schedule(idleTimePeriods, earliestStartTimes, assignment, startTimes, machineAssignments, y_abk, assignedMachine);
     }
 
+    public double[] getFeatureVector() {
+        // 将OS和MS序列转换为一个特征向量
+        // 这里只是一个示例，你需要根据你的具体需求返回特征向量
+        double[] features = new double[OS.size() + MS.size()];
+        for (int i = 0; i < OS.size(); i++) {
+            features[i] = OS.get(i);
+        }
+        for (int i = 0; i < MS.size(); i++) {
+            features[OS.size() + i] = MS.get(i);
+        }
+        return features;
+    }
+
 
     @Override
     public String toString() {

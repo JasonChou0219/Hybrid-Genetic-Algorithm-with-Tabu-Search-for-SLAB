@@ -36,8 +36,8 @@ public class Parameters {
     // The ratio of reassignment of machine for MS
     public static final double MACHINE_MUTATION_RATIO = 0.5;
     // The max number of revolution times of the population
-    public static final int MAX_GENERATION = 200;
-//    public static final int MAX_GENERATION = 1;
+//    public static final int MAX_GENERATION = 200;
+    public static final int MAX_GENERATION = 3;
 
     // the times that trigger random disturbance
 

@@ -453,144 +453,6 @@ public class Operator {
     /**
      * Description: mutation operation for OS and MS chromosome
      */
-//    public static void Mutation(Chromosome[] parents) {
-//        int num = parents.length;
-//        List<Chromosome> parentList = Arrays.asList(parents);
-//
-////        System.out.println("OS 多样性: " + osDiversity);
-////        System.out.println("MS 多样性: " + msDiversity);
-//
-//        double osDiversity = calculateSampledDiversity(parentList, true, 50); // 调整采样对数，例如50
-//        double msDiversity = calculateSampledDiversity(parentList, false, 50);
-//
-////        System.out.println("OS 多样性: " + osDiversity);
-////        System.out.println("MS 多样性: " + msDiversity);
-//
-//        double osBaseRate = Parameters.OS_MUTATION_RATE;
-//        double osMaxRate = Parameters.OS_MAX_MUTATION_RATE;
-//        double msBaseRate = Parameters.MS_MUTATION_RATE;
-//        double msMaxRate = Parameters.MS_MAX_MUTATION_RATE;
-//
-//
-////        double osMutationRate = osBaseRate + (1 - osDiversity) * (osMaxRate - osBaseRate);
-////        double msMutationRate = msBaseRate + (1 - msDiversity) * (msMaxRate - msBaseRate);
-//
-//
-//        double osMutationRate = calculateSechMutationRate(osDiversity, osBaseRate, osMaxRate, 6.0, 0.5);
-//        double msMutationRate = calculateSechMutationRate(msDiversity, msBaseRate, msMaxRate, 18.0, 0.54);
-////        double osMutationRate = osMaxRate;
-////        double msMutationRate = msMaxRate;
-//
-////        System.out.println("OS 变异率: " + osMutationRate);
-////        System.out.println("MS 变异率: " + msMutationRate);
-//
-//
-//        for (int i = 0; i < num; i++){
-//            Chromosome o = parents[i];
-//            // OS mutation
-////            if (r.nextDouble() < Parameters.OS_MUTATION_RATE) {
-//            if (r.nextDouble() < osMutationRate) {
-//                List<Integer> newOS = new ArrayList<>(o.getOS());
-////                System.out.println("Before mutation: " + newOS);
-//                if (r.nextBoolean()) {
-//                    SwappingMutation(newOS);
-////                    System.out.println("染色体 " + i + " 执行 SwappingMutation.");
-//                } else {
-//                    InsertionMutation(newOS);
-////                    System.out.println("染色体 " + i + " 执行 InsertionMutation.");
-//                }
-////                System.out.println("After mutation: " + newOS);
-//
-//                o.setOS(newOS);
-//            }
-//            // MS mutation
-////            if (r.nextDouble() < Parameters.MS_MUTATION_RATE) {
-//            if (r.nextDouble() < msMutationRate) {
-//                    List<Integer> newMS = new ArrayList<>(o.getMS());
-//                    MachineReassignmentMutation(newMS, o.getOS());
-////                    System.out.println("染色体 " + i + " 执行 MachineReassignmentMutation.");
-//                    o.setMS(newMS);
-//
-//            }
-//            // update schedule and fitness after crossover and mutation
-//            parents[i] = new Chromosome(o);
-//            if (r.nextDouble() < Parameters.DELAY_MUTATION_RATE){
-//                Map<Integer,Integer> maxDelay = new HashMap<>();
-//                for (TCMB tcmb : problemSetting.getTCMBList()) {
-//                    int opA = tcmb.getOp1();
-//                    int opB = tcmb.getOp2();
-//
-//                    int endA = o.getSchedule().getStartTimes().get(opA) + problemSetting.getProcessingTime()[opA - 1];
-//                    int startB = o.getSchedule().getStartTimes().get(opB);
-//
-//                    int timeLag = startB - endA;
-////                    if (timeLag <= tcmb.getTimeConstraint()){
-////                        if (r.nextDouble() < Parameters.DELAY_WITHDRAW_PROBABILITY) {
-////                            maxDelay.put(opA, 0);
-////                        }
-////                    }
-////                    if (timeLag > tcmb.getTimeConstraint()) {
-//////                        double delayMean = 0;
-////                        double delayStdDev = (timeLag - tcmb.getTimeConstraint()) / 2.0;
-//////                        System.out.println(timeLag - tcmb.getTimeConstraint());
-//////                        System.out.println("violation: " + (timeLag - tcmb.getTimeConstraint()));
-////
-//////                        int newDelay = (int) Math.round( (1 - r.nextGaussian()) * delayStdDev);
-//////                        System.out.println("Random delay fot op" + opA + " : " + newDelay);
-////                        int newDelay = Math.min((int) Math.round( (1 - r.nextGaussian()) * delayStdDev), timeLag - tcmb.getTimeConstraint() );
-////                        if (newDelay > 0) {
-////                            int curDelay = maxDelay.getOrDefault(opA, Integer.MAX_VALUE);
-////                            maxDelay.put(opA, Math.min(curDelay, newDelay));
-////                        }
-//
-//
-//                    int originDelay = o.getDelay().getOrDefault(opA, 0);
-//
-//                    if (timeLag <= tcmb.getTimeConstraint()) {
-//                        if (r.nextDouble() < Parameters.DELAY_WITHDRAW_PROBABILITY) {
-//                            // 以一定概率回溯
-//                            maxDelay.put(opA, 0);
-////                            maxDelay.put(opA, Math.max(0, r.nextInt(Math.max(1, originDelay))));
-////                            maxDelay.put(opA, Math.max(0, originDelay - r.nextInt(5)));
-//                        } else {
-//
-//                            // 保持原有延迟
-//                            if(!maxDelay.containsKey(opA)){
-//                                maxDelay.put(opA, originDelay);
-//                            }
-//                        }
-//                    }
-//                    if (timeLag > tcmb.getTimeConstraint()) {
-////                    else {
-//                        // 叠加策略或直接覆盖
-////                        int originDelay = o.getDelay().getOrDefault(opA, 0);
-//                        double delayStdDev = (timeLag - tcmb.getTimeConstraint()) / 2.0;
-//                        int newDelay = Math.min((int) Math.round((1 - r.nextGaussian()) * delayStdDev), timeLag - tcmb.getTimeConstraint());
-//
-//                        if (newDelay > 0) {
-//                            // 叠加延迟
-//                            int curDelay = maxDelay.getOrDefault(opA, Integer.MAX_VALUE);
-//                            maxDelay.put(opA, Math.min(originDelay + newDelay,curDelay));
-//                        } else {
-//                            // 保持原始延迟
-//                            maxDelay.put(opA, originDelay);
-//                        }
-//                    }
-//
-//                }
-////                System.out.println(maxDelay.isEmpty());
-//                for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()) {
-//                    int opA = entry.getKey();
-//                    int delay = entry.getValue();
-////                    System.out.println("delay for op" + opA + " : " + delay);
-////                    o.getDelay().put(opA, delay);
-//                }
-//                o.setDelay(maxDelay);
-////                System.out.println("染色体 " + i + " 执行延迟变异，更新延迟.");
-//            }
-//        }
-//    }
-
     public static void Mutation(Chromosome[] parents) {
         int num = parents.length;
         List<Chromosome> parentList = Arrays.asList(parents);
@@ -644,10 +506,10 @@ public class Operator {
             // MS mutation
 //            if (r.nextDouble() < Parameters.MS_MUTATION_RATE) {
             if (r.nextDouble() < msMutationRate) {
-                List<Integer> newMS = new ArrayList<>(o.getMS());
-                MachineReassignmentMutation(newMS, o.getOS());
+                    List<Integer> newMS = new ArrayList<>(o.getMS());
+                    MachineReassignmentMutation(newMS, o.getOS());
 //                    System.out.println("染色体 " + i + " 执行 MachineReassignmentMutation.");
-                o.setMS(newMS);
+                    o.setMS(newMS);
 
             }
             // update schedule and fitness after crossover and mutation
@@ -662,18 +524,37 @@ public class Operator {
                     int startB = o.getSchedule().getStartTimes().get(opB);
 
                     int timeLag = startB - endA;
-                    if (timeLag > tcmb.getTimeConstraint()) {
-//                        double delayMean = 0;
-                        double delayStdDev = (timeLag - tcmb.getTimeConstraint()) / 2.0;
-//                        System.out.println(timeLag - tcmb.getTimeConstraint());
-//                        System.out.println("violation: " + (timeLag - tcmb.getTimeConstraint()));
 
-//                        int newDelay = (int) Math.round( (1 - r.nextGaussian()) * delayStdDev);
-//                        System.out.println("Random delay fot op" + opA + " : " + newDelay);
-                        int newDelay = Math.max((int) Math.round((1 - r.nextGaussian()) * delayStdDev), timeLag - tcmb.getTimeConstraint());
+                    int originDelay = o.getDelay().getOrDefault(opA, 0);
+
+                    if (timeLag <= tcmb.getTimeConstraint()) {
+                        if (r.nextDouble() < Parameters.DELAY_WITHDRAW_PROBABILITY) {
+                            // 以一定概率回溯
+                            maxDelay.put(opA, 0);
+//                            maxDelay.put(opA, Math.max(0, r.nextInt(Math.max(1, originDelay))));
+//                            maxDelay.put(opA, Math.max(0, originDelay - r.nextInt(5)));
+                        } else {
+
+                            // 保持原有延迟
+                            if(!maxDelay.containsKey(opA)){
+                                maxDelay.put(opA, originDelay);
+                            }
+                        }
+                    }
+                    if (timeLag > tcmb.getTimeConstraint()) {
+//                    else {
+                        // 叠加策略或直接覆盖
+//                        int originDelay = o.getDelay().getOrDefault(opA, 0);
+                        double delayStdDev = (timeLag - tcmb.getTimeConstraint()) / 2.0;
+                        int newDelay = Math.min((int) Math.round((1 - r.nextGaussian()) * delayStdDev), timeLag - tcmb.getTimeConstraint());
+
                         if (newDelay > 0) {
+                            // 叠加延迟
                             int curDelay = maxDelay.getOrDefault(opA, Integer.MAX_VALUE);
-                            maxDelay.put(opA, Math.min(curDelay, newDelay));
+                            maxDelay.put(opA, Math.min(originDelay + newDelay,curDelay));
+                        } else {
+                            // 保持原始延迟
+                            maxDelay.put(opA, originDelay);
                         }
                     }
 
@@ -690,6 +571,106 @@ public class Operator {
             }
         }
     }
+
+//    public static void Mutation(Chromosome[] parents) {
+//        int num = parents.length;
+//        List<Chromosome> parentList = Arrays.asList(parents);
+//
+////        System.out.println("OS 多样性: " + osDiversity);
+////        System.out.println("MS 多样性: " + msDiversity);
+//
+//        double osDiversity = calculateSampledDiversity(parentList, true, 50); // 调整采样对数，例如50
+//        double msDiversity = calculateSampledDiversity(parentList, false, 50);
+//
+////        System.out.println("OS 多样性: " + osDiversity);
+////        System.out.println("MS 多样性: " + msDiversity);
+//
+//        double osBaseRate = Parameters.OS_MUTATION_RATE;
+//        double osMaxRate = Parameters.OS_MAX_MUTATION_RATE;
+//        double msBaseRate = Parameters.MS_MUTATION_RATE;
+//        double msMaxRate = Parameters.MS_MAX_MUTATION_RATE;
+//
+//
+////        double osMutationRate = osBaseRate + (1 - osDiversity) * (osMaxRate - osBaseRate);
+////        double msMutationRate = msBaseRate + (1 - msDiversity) * (msMaxRate - msBaseRate);
+//
+//
+//        double osMutationRate = calculateSechMutationRate(osDiversity, osBaseRate, osMaxRate, 6.0, 0.5);
+//        double msMutationRate = calculateSechMutationRate(msDiversity, msBaseRate, msMaxRate, 18.0, 0.54);
+////        double osMutationRate = osMaxRate;
+////        double msMutationRate = msMaxRate;
+//
+////        System.out.println("OS 变异率: " + osMutationRate);
+////        System.out.println("MS 变异率: " + msMutationRate);
+//
+//
+//        for (int i = 0; i < num; i++){
+//            Chromosome o = parents[i];
+//            // OS mutation
+////            if (r.nextDouble() < Parameters.OS_MUTATION_RATE) {
+//            if (r.nextDouble() < osMutationRate) {
+//                List<Integer> newOS = new ArrayList<>(o.getOS());
+////                System.out.println("Before mutation: " + newOS);
+//                if (r.nextBoolean()) {
+//                    SwappingMutation(newOS);
+////                    System.out.println("染色体 " + i + " 执行 SwappingMutation.");
+//                } else {
+//                    InsertionMutation(newOS);
+////                    System.out.println("染色体 " + i + " 执行 InsertionMutation.");
+//                }
+////                System.out.println("After mutation: " + newOS);
+//
+//                o.setOS(newOS);
+//            }
+//            // MS mutation
+////            if (r.nextDouble() < Parameters.MS_MUTATION_RATE) {
+//            if (r.nextDouble() < msMutationRate) {
+//                List<Integer> newMS = new ArrayList<>(o.getMS());
+//                MachineReassignmentMutation(newMS, o.getOS());
+////                    System.out.println("染色体 " + i + " 执行 MachineReassignmentMutation.");
+//                o.setMS(newMS);
+//
+//            }
+//            // update schedule and fitness after crossover and mutation
+//            parents[i] = new Chromosome(o);
+//            if (r.nextDouble() < Parameters.DELAY_MUTATION_RATE){
+//                Map<Integer,Integer> maxDelay = new HashMap<>();
+//                for (TCMB tcmb : problemSetting.getTCMBList()) {
+//                    int opA = tcmb.getOp1();
+//                    int opB = tcmb.getOp2();
+//
+//                    int endA = o.getSchedule().getStartTimes().get(opA) + problemSetting.getProcessingTime()[opA - 1];
+//                    int startB = o.getSchedule().getStartTimes().get(opB);
+//
+//                    int timeLag = startB - endA;
+//                    if (timeLag > tcmb.getTimeConstraint()) {
+////                        double delayMean = 0;
+//                        double delayStdDev = (timeLag - tcmb.getTimeConstraint()) / 2.0;
+////                        System.out.println(timeLag - tcmb.getTimeConstraint());
+////                        System.out.println("violation: " + (timeLag - tcmb.getTimeConstraint()));
+//
+////                        int newDelay = (int) Math.round( (1 - r.nextGaussian()) * delayStdDev);
+////                        System.out.println("Random delay fot op" + opA + " : " + newDelay);
+//                        int newDelay = Math.max((int) Math.round((1 - r.nextGaussian()) * delayStdDev), timeLag - tcmb.getTimeConstraint());
+//                        if (newDelay > 0) {
+//                            int curDelay = maxDelay.getOrDefault(opA, Integer.MAX_VALUE);
+//                            maxDelay.put(opA, Math.min(curDelay, newDelay));
+//                        }
+//                    }
+//
+//                }
+////                System.out.println(maxDelay.isEmpty());
+//                for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()) {
+//                    int opA = entry.getKey();
+//                    int delay = entry.getValue();
+////                    System.out.println("delay for op" + opA + " : " + delay);
+////                    o.getDelay().put(opA, delay);
+//                }
+//                o.setDelay(maxDelay);
+////                System.out.println("染色体 " + i + " 执行延迟变异，更新延迟.");
+//            }
+//        }
+//    }
 
     private static void SwappingMutation(List<Integer> OS) {
         int length = OS.size();

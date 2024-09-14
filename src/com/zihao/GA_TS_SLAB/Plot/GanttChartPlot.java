@@ -132,8 +132,114 @@ public class GanttChartPlot {
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
+
+
+        callPythonScript("src/com/zihao/GA_TS_SLAB/Plot/plot_clustering.py");
+//        callPythonScript("src/com/zihao/GA_TS_SLAB/Plot/DBSCAN.py");
+
+    }
+
+//    private static void callPythonScript(String pythonScriptPath) {
+//        try {
+//            // 获取Python解释器的路径
+//            ProcessBuilder pb = new ProcessBuilder("python3", "-c", "import sys; print(sys.executable)");
+//            Process process = pb.start();
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+//            String line;
+//            String pythonPath = "";
+//            while ((line = reader.readLine()) != null) {
+//                pythonPath += line;
+//            }
+//
+//            int exitCode = process.waitFor();
+//            if (exitCode == 0) {
+//                System.out.println("Python executable: " + pythonPath);
+//            } else {
+//                System.out.println("Failed to get Python executable with exit code: " + exitCode);
+//                return;
+//            }
+//
+//            // 调用 plot_clustering.py
+//            pb = new ProcessBuilder(pythonPath, pythonScriptPath);
+//            pb.directory(new File(".")); // 设置工作目录为当前目录
+//            process = pb.start();
+//
+//            // 读取标准输出和标准错误
+//            BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+//            BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+//
+//            System.out.println("Standard output:");
+//            while ((line = stdInput.readLine()) != null) {
+//                System.out.println(line);
+//            }
+//
+//            System.out.println("Standard error:");
+//            while ((line = stdError.readLine()) != null) {
+//                System.err.println(line);
+//            }
+//
+//            exitCode = process.waitFor();
+//            if (exitCode == 0) {
+//                System.out.println("Python script executed successfully.");
+//            } else {
+//                System.out.println("Python script execution failed with exit code: " + exitCode);
+//            }
+//        } catch (IOException | InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//    }
+    private static void callPythonScript(String pythonScriptPath) {
+        try {
+            // 获取Python解释器的路径
+            ProcessBuilder pb = new ProcessBuilder("python3", "-c", "import sys; print(sys.executable)");
+            Process process = pb.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            String pythonPath = "";
+            while ((line = reader.readLine()) != null) {
+                pythonPath += line;
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                System.out.println("Python executable: " + pythonPath);
+            } else {
+                System.out.println("Failed to get Python executable with exit code: " + exitCode);
+                return;
+            }
+
+            // 调用 DBSCAN.py
+            pb = new ProcessBuilder(pythonPath, pythonScriptPath);
+            pb.directory(new File(".")); // 设置工作目录为当前目录
+            process = pb.start();
+
+            // 读取标准输出和标准错误
+            BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            System.out.println("Standard output:");
+            while ((line = stdInput.readLine()) != null) {
+                System.out.println(line);
+            }
+
+            System.out.println("Standard error:");
+            while ((line = stdError.readLine()) != null) {
+                System.err.println(line);
+            }
+
+            exitCode = process.waitFor();
+            if (exitCode == 0) {
+                System.out.println("Python script executed successfully.");
+            } else {
+                System.out.println("Python script execution failed with exit code: " + exitCode);
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
+
+
 
 
 
