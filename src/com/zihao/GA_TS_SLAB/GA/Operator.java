@@ -482,8 +482,8 @@ public class Operator {
 
 
 
-        System.out.println("OS 多样性: " + osDiversity);
-        System.out.println("MS 多样性: " + msDiversity);
+//        System.out.println("OS 多样性: " + osDiversity);
+//        System.out.println("MS 多样性: " + msDiversity);
 
         double osBaseRate = Parameters.OS_MUTATION_RATE;
         double osMaxRate = Parameters.OS_MAX_MUTATION_RATE;
@@ -500,8 +500,8 @@ public class Operator {
 //        double osMutationRate = osMaxRate;
 //        double msMutationRate = msMaxRate;
 
-        System.out.println("OS 变异率: " + osMutationRate);
-        System.out.println("MS 变异率: " + msMutationRate);
+//        System.out.println("OS 变异率: " + osMutationRate);
+//        System.out.println("MS 变异率: " + msMutationRate);
 
 
         for (int i = 0; i < num; i++){
@@ -510,6 +510,7 @@ public class Operator {
 //            if (r.nextDouble() < Parameters.OS_MUTATION_RATE) {
             if (r.nextDouble() < osMutationRate) {
                 List<Integer> newOS = new ArrayList<>(o.getOS());
+//                System.out.println("Before mutation: " + newOS);
                 if (r.nextBoolean()) {
                     SwappingMutation(newOS);
 //                    System.out.println("染色体 " + i + " 执行 SwappingMutation.");
@@ -517,6 +518,8 @@ public class Operator {
                     InsertionMutation(newOS);
 //                    System.out.println("染色体 " + i + " 执行 InsertionMutation.");
                 }
+//                System.out.println("After mutation: " + newOS);
+
                 o.setOS(newOS);
             }
             // MS mutation
@@ -542,24 +545,28 @@ public class Operator {
                     int timeLag = startB - endA;
 
                     if (timeLag > tcmb.getTimeConstraint()) {
-                        double delayMean = 0;
-                        double delayStdDev = Math.max(timeLag - tcmb.getTimeConstraint(), 1) / 2.0;
+//                        double delayMean = 0;
+                        double delayStdDev = (timeLag - tcmb.getTimeConstraint()) / 2.0;
 //                        System.out.println(timeLag - tcmb.getTimeConstraint());
-                        int newDelay = (int) Math.round( (1 - r.nextGaussian()) * delayStdDev + delayMean);
+//                        System.out.println("violation: " + (timeLag - tcmb.getTimeConstraint()));
+
+//                        int newDelay = (int) Math.round( (1 - r.nextGaussian()) * delayStdDev);
+//                        System.out.println("Random delay fot op" + opA + " : " + newDelay);
+                        int newDelay = Math.max((int) Math.round( (1 - r.nextGaussian()) * delayStdDev), timeLag - tcmb.getTimeConstraint() );
                         if (newDelay > 0) {
-                            int curDelay = maxDelay.getOrDefault(opA, 0);
-                            if (curDelay != 0){
-                                maxDelay.put(opA, Math.min(curDelay, newDelay));
-                            }
+                            int curDelay = maxDelay.getOrDefault(opA, Integer.MAX_VALUE);
+                            maxDelay.put(opA, Math.min(curDelay, newDelay));
                         }
+
                     }
                 }
-
-//                for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()) {
-//                    int opA = entry.getKey();
-//                    int delay = entry.getValue();
+//                System.out.println(maxDelay.isEmpty());
+                for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()) {
+                    int opA = entry.getKey();
+                    int delay = entry.getValue();
+//                    System.out.println("delay for op" + opA + " : " + delay);
 //                    o.getDelay().put(opA, delay);
-//                }
+                }
                 o.setDelay(maxDelay);
 //                System.out.println("染色体 " + i + " 执行延迟变异，更新延迟.");
             }
@@ -574,9 +581,12 @@ public class Operator {
         while (p2 == p1) {
             p2 = r.nextInt(length);
         }
+//        System.out.println("交换p1: " + p1 + "的元素 " + OS.get(p1) + " 和 " +  p2 + " 的元素" + OS.get(p2) + ".");
+
 
         // Swap elements
         Collections.swap(OS, p1, p2);
+//        System.out.println("交换后OS " + OS);
 
         // Perform topological sort
         Utility.topologicalSort(OS);
