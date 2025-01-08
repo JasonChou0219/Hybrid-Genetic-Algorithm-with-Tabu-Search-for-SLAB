@@ -66,8 +66,8 @@ public class GanttChartPlot {
         }
 
         System.out.println("Schedule exported to " + scheduelFile.getAbsolutePath());
-
-
+//
+//
         File adjacencyCsvFile = new File("src/com/zihao/GA_TS_SLAB/Plot/adjacency_list.csv");
         try (FileWriter writer = new FileWriter(adjacencyCsvFile)) {
             writer.append("Operation,AdjacencyList\n");
@@ -82,12 +82,12 @@ public class GanttChartPlot {
             e.printStackTrace();
         }
 
-
-
-        // Call python script
+//
+//
+//        // Call python script
         try {
             String pythonScriptPath = "src/com/zihao/GA_TS_SLAB/Plot/plot_gantt.py"; // 确保路径正确
-            ProcessBuilder pb = new ProcessBuilder("python3", "-c", "import sys; print(sys.executable)");
+            ProcessBuilder pb = new ProcessBuilder("/usr/bin/python3", "-c", "import sys; print(sys.executable)");
             Process process = pb.start();
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -132,9 +132,9 @@ public class GanttChartPlot {
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
-
-
-        callPythonScript("src/com/zihao/GA_TS_SLAB/Plot/plot_clustering.py");
+//
+//
+//        callPythonScript("src/com/zihao/GA_TS_SLAB/Plot/plot_clustering.py");
 //        callPythonScript("src/com/zihao/GA_TS_SLAB/Plot/DBSCAN.py");
 
     }
@@ -191,7 +191,7 @@ public class GanttChartPlot {
     private static void callPythonScript(String pythonScriptPath) {
         try {
             // 获取Python解释器的路径
-            ProcessBuilder pb = new ProcessBuilder("python3", "-c", "import sys; print(sys.executable)");
+            ProcessBuilder pb = new ProcessBuilder("/usr/bin/python3", "-c", "import sys; print(sys.executable)");
             Process process = pb.start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line;

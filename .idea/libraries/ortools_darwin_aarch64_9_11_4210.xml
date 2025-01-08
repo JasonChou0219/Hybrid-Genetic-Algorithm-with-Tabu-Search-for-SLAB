@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="ortools-darwin-aarch64-9.11.4210">
+    <CLASSES>
+      <root url="jar:///opt/homebrew/Cellar/or-tools/9.11_1/lib/ortools-darwin-aarch64-9.11.4210.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

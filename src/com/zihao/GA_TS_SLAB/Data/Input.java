@@ -50,8 +50,9 @@ public class Input {
 
             }
             // input_op first so the buildOrderMatrix need to be placed in input_dep
-            problemSetting.buildOrderMatrix(problemSetting.getDag(), problemSetting.getTotalOpNum());
+            problemSetting.buildDistanceMatrix(problemSetting.getDag(), problemSetting.getTotalOpNum());
 //            problemSetting.printOrderMatrix(problemSetting.getTotalOpNum());
+
         }   catch (IOException e) {
             e.printStackTrace();
         }
@@ -179,7 +180,7 @@ public class Input {
      */
     public void inputTCMB(File filePath) {
         List<TCMB> tcmbList = new ArrayList<>();
-        List<Integer> delayList = new ArrayList<>();
+        Set<Integer> tcmbOps = new HashSet<>();
         try (BufferedReader reader = getBufferedReader(filePath)) {
             String line;
             // Skip file header
@@ -199,19 +200,26 @@ public class Input {
                     int timeConstraint = Integer.parseInt(fields[5]);
                     int uniqueOpID1 = getUniqueOpID(jobID, op1, problemSetting.getOpNumEachJob());
                     int uniqueOpID2 = getUniqueOpID(jobID, op2, problemSetting.getOpNumEachJob());
-                    delayList.add(uniqueOpID1);
+//                    delayList.add(uniqueOpID1);
                     tcmbList.add(new TCMB(uniqueOpID1, uniqueOpID2, timeConstraint));
+                    tcmbOps.add(uniqueOpID1);
                 } catch (NumberFormatException e) {
                     System.err.println("Skipping line due to number format error: " + Arrays.toString(fields));
                 }
             }
             problemSetting.setTCMBList(tcmbList);
-            problemSetting.setDelayList(delayList);
+//            problemSetting.setDelayList(delayList);
+
+            problemSetting.setTcmbOps(tcmbOps);
+            Set<Integer> nonTcmbOps = new HashSet<>(problemSetting.getOpToCompatibleList().keySet());
+            nonTcmbOps.removeAll(tcmbOps);
+            problemSetting.setNonTcmbOps(nonTcmbOps);
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
 
     public int getUniqueOpID(int jobID, int operationID, int[] opNumEachJob) {
         int globalOpID = 0;

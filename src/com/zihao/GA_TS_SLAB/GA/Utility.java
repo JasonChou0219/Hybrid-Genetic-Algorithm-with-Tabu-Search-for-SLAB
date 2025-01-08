@@ -66,61 +66,65 @@ public class Utility {
         return makespan;
     }
 
+
     public static List<Integer> topologicalSort(List<Integer> operations) {
         int n = operations.size();
-        int [][] orderMatrix = problemSetting.getOrderMatrix();
-        for (int i = 0; i < n - 1; i++){
+        int[][] distanceMatrix = problemSetting.getDistanceMatrix();
+
+        for (int i = 0; i < n - 1; i++) {
             int minIndex = i;
-            for (int j = i + 1; j < n; j++){
-                if (orderMatrix[operations.get(j)][operations.get(minIndex)] == 1) {
+            for (int j = i + 1; j < n; j++) {
+                int dis = distanceMatrix[operations.get(j)][operations.get(minIndex)];
+                // 检查 operations.get(j) 是否是 operations.get(minIndex) 的前置节点
+                if (dis > 0) {
                     minIndex = j;
                 }
             }
+            // 交换 operations 中 i 和 minIndex 位置的元素
             int temp = operations.get(minIndex);
             operations.set(minIndex, operations.get(i));
             operations.set(i, temp);
         }
 
-//        System.out.println("Topologically sorted operations: " + operations);
-
         return operations;
     }
 
-    public static List<Integer> kahnTopologicalSort(List<Integer> operations) {
-        int [][] orderMatrix = problemSetting.getOrderMatrix();
-        int n = operations.size();
-        int[] inDegree = new int[n + 1];
-        for (int i = 1; i <= n; i++) {
-            for (int j = 1; j <= n; j++) {
-                if (orderMatrix[i][j] == 1) {
-                    inDegree[j]++;
-                }
-            }
-        }
 
-        Queue<Integer> queue = new LinkedList<>();
-        for (int i : operations) {
-            if (inDegree[i] == 0) {
-                queue.add(i);
-            }
-        }
-
-        List<Integer> sortedOperations = new ArrayList<>();
-        while (!queue.isEmpty()) {
-            int op = queue.poll();
-            sortedOperations.add(op);
-
-            for (int j = 1; j <= n; j++) {
-                if (orderMatrix[op][j] == 1) {
-                    if (--inDegree[j] == 0) {
-                        queue.add(j);
-                    }
-                }
-            }
-        }
-
-        return sortedOperations;
-    }
+//    public static List<Integer> kahnTopologicalSort(List<Integer> operations) {
+//        int [][] orderMatrix = problemSetting.getOrderMatrix();
+//        int n = operations.size();
+//        int[] inDegree = new int[n + 1];
+//        for (int i = 1; i <= n; i++) {
+//            for (int j = 1; j <= n; j++) {
+//                if (orderMatrix[i][j] == 1) {
+//                    inDegree[j]++;
+//                }
+//            }
+//        }
+//
+//        Queue<Integer> queue = new LinkedList<>();
+//        for (int i : operations) {
+//            if (inDegree[i] == 0) {
+//                queue.add(i);
+//            }
+//        }
+//
+//        List<Integer> sortedOperations = new ArrayList<>();
+//        while (!queue.isEmpty()) {
+//            int op = queue.poll();
+//            sortedOperations.add(op);
+//
+//            for (int j = 1; j <= n; j++) {
+//                if (orderMatrix[op][j] == 1) {
+//                    if (--inDegree[j] == 0) {
+//                        queue.add(j);
+//                    }
+//                }
+//            }
+//        }
+//
+//        return sortedOperations;
+//    }
 
 
     public static List<Integer> compatibleAdjust(List<Integer> MS, List<Integer> OS){
@@ -159,6 +163,26 @@ public class Utility {
             }
         }
         System.out.println("========================================================================================");
+    }
+
+    public static boolean checkViolation(Chromosome chromosome) {
+        List<TCMB> tcmbList = problemSetting.getTCMBList();
+        Schedule schedule = chromosome.getSchedule();
+        Map<Integer, Integer> startTimes = schedule.getStartTimes();
+        int[] processingTimes = problemSetting.getProcessingTime();
+
+        for (TCMB tcmb : tcmbList) {
+            int opA = tcmb.getOp1();
+            int opB = tcmb.getOp2();
+            int endA = startTimes.get(opA) + processingTimes[opA - 1];
+            int startB = startTimes.get(opB);
+
+            int timeLag = startB - endA;
+            if (timeLag > tcmb.getTimeConstraint()) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

@@ -14,6 +14,8 @@ public class Parameters {
 
     public static final double PENALTY_WEIGHT_2 = 0.5;
     public static final double PENALTY_WEIGHT_1 = 10;
+//    public static final double PENALTY_WEIGHT_2 = 1.0;
+//    public static final double PENALTY_WEIGHT_1 = 15;
     // Ratio of elist selection
     public static final double ELIT_RATIO = 0.01;
     // Probability  to trigger crossover
@@ -29,15 +31,16 @@ public class Parameters {
     public static final double MS_MAX_MUTATION_RATE = 0.4;
     public static final double DELAY_SEARCH_RATIO = 0.05;
     public static final double INSERT_SEARCH_RATIO = 0.02;
-    public static final int TABU_MAX_ITERATION = 35;
+//    public static final int TABU_MAX_ITERATION = 35;
+public static final int TABU_MAX_ITERATION = 20;
     public static final int TABU_MIN_ITERATION = 5;
     public static final int TABU_IMPROVEMENT = 5;
-    public static final int TABU_SIZE = 25;
+    public static final int TABU_SIZE = 50;
     // The ratio of reassignment of machine for MS
     public static final double MACHINE_MUTATION_RATIO = 0.5;
     // The max number of revolution times of the population
-//    public static final int MAX_GENERATION = 200;
-    public static final int MAX_GENERATION = 3;
+//    public static final int MAX_GENERATION = 150;
+    public static final int MAX_GENERATION = 100;
 
     // the times that trigger random disturbance
 

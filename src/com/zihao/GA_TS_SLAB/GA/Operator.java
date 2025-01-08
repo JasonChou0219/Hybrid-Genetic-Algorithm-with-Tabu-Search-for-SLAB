@@ -456,6 +456,9 @@ public class Operator {
     public static void Mutation(Chromosome[] parents) {
         int num = parents.length;
         List<Chromosome> parentList = Arrays.asList(parents);
+        Set<Integer> nonTcmbOps = problemSetting.getNonTcmbOps();
+        Set<Integer> tcmbOps = problemSetting.getTcmbOps();
+        int[][] distanceMatrix = problemSetting.getDistanceMatrix();
 
 //        System.out.println("OS 多样性: " + osDiversity);
 //        System.out.println("MS 多样性: " + msDiversity);
@@ -514,6 +517,7 @@ public class Operator {
             }
             // update schedule and fitness after crossover and mutation
             parents[i] = new Chromosome(o);
+            Map<Integer, Integer> origin = o.getDelay();
             if (r.nextDouble() < Parameters.DELAY_MUTATION_RATE){
                 Map<Integer,Integer> maxDelay = new HashMap<>();
                 for (TCMB tcmb : problemSetting.getTCMBList()) {
@@ -546,6 +550,7 @@ public class Operator {
                         // 叠加策略或直接覆盖
 //                        int originDelay = o.getDelay().getOrDefault(opA, 0);
                         double delayStdDev = (timeLag - tcmb.getTimeConstraint()) / 2.0;
+//                        double delayStdDev = (timeLag - tcmb.getTimeConstraint()) / 3.0;
                         int newDelay = Math.min((int) Math.round((1 - r.nextGaussian()) * delayStdDev), timeLag - tcmb.getTimeConstraint());
 
                         if (newDelay > 0) {
@@ -559,13 +564,39 @@ public class Operator {
                     }
 
                 }
+
+//                for (int op : nonTcmbOps) {
+//                    int minDistance = Integer.MAX_VALUE;
+//                    for (int tcmbOp : tcmbOps) {
+//                        if (distanceMatrix[op][tcmbOp] > 0 && distanceMatrix[op][tcmbOp] < minDistance) {
+//                            minDistance = distanceMatrix[op][tcmbOp];
+//                        }
+//                    }
+//
+//                    double probability = minDistance == Integer.MAX_VALUE ? 0 : 1.0 / Math.exp(minDistance); // 使用指数衰减
+//
+//                    if (r.nextDouble() < probability) {
+//                        if (origin.containsKey(op)) {
+//                            // 如果已经存在延迟，只在-1, 0, 1范围内调整
+//                            int currentDelay = origin.get(op);
+//                            int randomAdjustment = r.nextInt(3) - 1; // -1, 0, or 1
+//                            int newDelay = Math.max(0, currentDelay + randomAdjustment); // 确保延迟不为负数
+//                            maxDelay.put(op, newDelay);
+//                        } else {
+//                            // 如果不存在延迟，随机生成 0 到 3 的延迟
+//                            int randomDelay = r.nextInt(4); // 生成 0 到 3 的随机整数
+//                            maxDelay.put(op, randomDelay);
+//                        }
+//                    }
+//                }
 //                System.out.println(maxDelay.isEmpty());
-                for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()) {
-                    int opA = entry.getKey();
-                    int delay = entry.getValue();
-//                    System.out.println("delay for op" + opA + " : " + delay);
-//                    o.getDelay().put(opA, delay);
-                }
+//                for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()) {
+//                    int opA = entry.getKey();
+//                    int delay = entry.getValue();
+////                    System.out.println("delay for op" + opA + " : " + delay);
+////                    o.getDelay().put(opA, delay);
+//                }
+                // 这里需要考虑原先的非TCMB op
                 o.setDelay(maxDelay);
 //                System.out.println("染色体 " + i + " 执行延迟变异，更新延迟.");
             }

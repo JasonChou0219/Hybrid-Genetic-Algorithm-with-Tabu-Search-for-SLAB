@@ -54,6 +54,9 @@ public class Chromosome implements Comparable<Chromosome> {
         delay = new HashMap<Integer, Integer>();
         this.r = r;
         int totalOpNum = problemSetting.getTotalOpNum();
+        int[][] distanceMatrix = problemSetting.getDistanceMatrix();
+        Set<Integer>nonTcmbOps = problemSetting.getNonTcmbOps();
+        Set<Integer>tcmbOps = problemSetting.getTcmbOps();
 
         // Generate a random permutation of operation IDs
         List<Integer> operations = new ArrayList<>();
@@ -87,6 +90,35 @@ public class Chromosome implements Comparable<Chromosome> {
                 maxDelay.put(tcmb.getOp1(), randomDelay);
             }
         }
+//        for (TCMB tcmb : problemSetting.getTCMBList()) {
+//            int curDelay = maxDelay.getOrDefault(tcmb.getOp1(), 0);
+//            if (curDelay == 0) {
+//                // 使用均匀分布在 0 到 10 之间生成随机延迟
+//                int randomDelay = r.nextInt(11); // 生成一个 0 到 10 的随机整数
+//                maxDelay.put(tcmb.getOp1(), randomDelay);
+//            }
+//        }
+
+//        for (int op : nonTcmbOps) {
+//            // 找到到任意 TCMB 操作的最小层级距离
+//            int minDistance = Integer.MAX_VALUE;
+//            for (int tcmbOp : tcmbOps) {
+//                if (distanceMatrix[op][tcmbOp] > 0 && distanceMatrix[op][tcmbOp] < minDistance) {
+//                    minDistance = distanceMatrix[op][tcmbOp];
+//                }
+//            }
+//
+//            // 根据最小距离计算概率（距离越小，概率越大）
+//            double probability = minDistance == Integer.MAX_VALUE? 0 : 1.0 / (minDistance + 1); // 加 1 避免除以零
+//
+//            // 使用该概率决定是否为当前非 TCMB 操作初始化延迟
+//            if (r.nextDouble() < probability) {
+//                // 初始化延迟，使用反比分布（距离越大，延迟越小）
+////                int maxDelayValue = Math.max(1, 10 - minDistance); // 避免延迟为零
+//                int randomDelay = r.nextInt(1); // 生成 0 到 maxDelayValue 的随机整数
+//                maxDelay.put(op, randomDelay);
+//            }
+//        }
         // 这里进行了修改,需要注意!!
         // 只进行maxDelay的计算,没有进行赋值
         this.delay = maxDelay;
@@ -143,13 +175,29 @@ public class Chromosome implements Comparable<Chromosome> {
 
 
     // Check if OS meets the precedence constraints
+//    public boolean checkPrecedenceConstraints() {
+//        Set<Integer> seen = new HashSet<>();
+//        int[][] orderMatrix = problemSetting.getOrderMatrix();
+//        for (int op : OS) {
+//            for (int i = 1; i < orderMatrix.length; i++) {
+//                if (orderMatrix[i][op] == 1 && !seen.contains(i)) {
+//                    System.out.println("The Chromosome has violate the precedence constraints of operation " + op + " before operation " + i);
+//                    return false;
+//                }
+//            }
+//            seen.add(op);
+//        }
+//        return true;
+//    }
     public boolean checkPrecedenceConstraints() {
         Set<Integer> seen = new HashSet<>();
-        int[][] orderMatrix = problemSetting.getOrderMatrix();
+        int[][] distanceMatrix = problemSetting.getDistanceMatrix();
+
         for (int op : OS) {
-            for (int i = 1; i < orderMatrix.length; i++) {
-                if (orderMatrix[i][op] == 1 && !seen.contains(i)) {
-                    System.out.println("The Chromosome has violate the precedence constraints of operation " + op + " before operation " + i);
+            for (int i = 1; i < distanceMatrix.length; i++) {
+                // 检查 i 是否是 op 的前置节点
+                if (distanceMatrix[i][op] > 0 &&  !seen.contains(i)) {
+                    System.out.println("The Chromosome has violated the precedence constraints of operation " + op + " before operation " + i);
                     return false;
                 }
             }
@@ -157,6 +205,7 @@ public class Chromosome implements Comparable<Chromosome> {
         }
         return true;
     }
+
 
     // Check if MS meets the compatibility constraints of OS
     public boolean checkCompatibleMachines() {
@@ -234,7 +283,8 @@ public class Chromosome implements Comparable<Chromosome> {
         // Initialize operation processing times
         int[] processingTimes = problemSetting.getProcessingTime();
 
-        List<Integer> delayList = problemSetting.getDelayList();
+        // unsed
+//        List<Integer> delayList = problemSetting.getDelayList();
 
         Map<Integer, Integer> assignedMachine = new HashMap<>();
 

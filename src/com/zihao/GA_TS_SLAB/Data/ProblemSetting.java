@@ -32,7 +32,9 @@ public class ProblemSetting {
     private List<TCMB> TCMBList;
 
     // Delay list
-    private List<Integer> delayList;
+//    private List<Integer> delayList;
+
+    private Set<Integer> tcmbOps;
 
     //DAG
     private DirectedAcyclicGraph dag;
@@ -40,10 +42,14 @@ public class ProblemSetting {
     //Reverse DAG
     private DirectedAcyclicGraph reverseDag;
 
-    private int[][] orderMatrix;
+    private int[][] distanceMatrix;
+
+    private Set<Integer> nonTcmbOps;
+
 
     // only a single instance globally
     private static ProblemSetting instance;
+
 
     // Private constructor to prevent instantiation
     private ProblemSetting() {
@@ -57,10 +63,12 @@ public class ProblemSetting {
         this.machineTypeToList = new HashMap<>();
         this.opToJob = new HashMap<>();
         this.TCMBList = new ArrayList<>();
-        this.delayList = new ArrayList<>();
+//        this.delayList = new ArrayList<>();
+        this.tcmbOps = new HashSet<>();
         this.dag = new DirectedAcyclicGraph();
         this.reverseDag = new DirectedAcyclicGraph();
-        this.orderMatrix = new int[0][0];
+        this.distanceMatrix = new int[0][0];
+        this.nonTcmbOps = new HashSet<>();
     }
 
     // Method to get the single instance of the class
@@ -158,14 +166,21 @@ public class ProblemSetting {
         this.TCMBList = TCMBList;
     }
 
-    //delay list
-    public List<Integer> getDelayList(){
-        return delayList;
+    public Set<Integer> getTcmbOps(){
+        return tcmbOps;
     }
 
-    public void setDelayList(List<Integer> delayList) {
-        this.delayList = delayList;
+    public void setTcmbOps(Set<Integer> tcmbOps){
+        this.tcmbOps = tcmbOps;
     }
+//    //delay list
+//    public List<Integer> getDelayList(){
+//        return delayList;
+//    }
+
+//    public void setDelayList(List<Integer> delayList) {
+//        this.delayList = delayList;
+//    }
 
     //DAG
     public DirectedAcyclicGraph getDag() {
@@ -186,40 +201,90 @@ public class ProblemSetting {
     }
 
 
-    public int[][] getOrderMatrix() {
-        return orderMatrix;
+    public int[][] getDistanceMatrix() {
+        return distanceMatrix;
     }
 
-    public void buildOrderMatrix(DirectedAcyclicGraph dag, int totalOpNum) {
-        orderMatrix = new int[totalOpNum + 1][totalOpNum + 1];
+    public Set<Integer> getNonTcmbOps() {
+        return nonTcmbOps;
+    }
+
+    public void setNonTcmbOps(Set<Integer>nonTcmbOps){
+        this.nonTcmbOps = nonTcmbOps;
+    }
+
+//    public void buildOrderMatrix(DirectedAcyclicGraph dag, int totalOpNum) {
+//        orderMatrix = new int[totalOpNum + 1][totalOpNum + 1];
+//        for (int i = 1; i <= totalOpNum; i++) {
+//            for (int neighbor : dag.getNeighbors(i)) {
+////                System.out.println(i + " " + neighbor);
+//                orderMatrix[i][neighbor] = 1;
+//            }
+//        }
+//
+//        // using the transitive relationship
+//        for (int k = 1; k <= totalOpNum; k++) {
+//            for (int i = 1; i <= totalOpNum; i++) {
+//                for (int j = 1; j <= totalOpNum; j++) {
+//                    if (orderMatrix[i][k] == 1 && orderMatrix[k][j] == 1) {
+//                        orderMatrix[i][j] = 1;
+//                    }
+//                }
+//            }
+//        }
+////        printOrderMatrix(totalOpNum);
+//    }
+
+
+    public void buildDistanceMatrix(DirectedAcyclicGraph dag, int totalOpNum) {
+        distanceMatrix = new int[totalOpNum + 1][totalOpNum + 1];
+        final int INF = Integer.MAX_VALUE / 2;  // Prevent overflow during addition
         for (int i = 1; i <= totalOpNum; i++) {
-            for (int neighbor : dag.getNeighbors(i)) {
-//                System.out.println(i + " " + neighbor);
-                orderMatrix[i][neighbor] = 1;
+            for (int j = 1; j <= totalOpNum; j++) {
+                if (i == j) {
+                    distanceMatrix[i][j] = 0; // Distance to self is 0
+                } else {
+                    distanceMatrix[i][j] = INF; // Initialize with a large value
+                }
             }
         }
 
-        // using the transitive relationship
+        // Populate the distanceMatrix with direct edges from the DAG
+        for (int i = 1; i <= totalOpNum; i++) {
+            for (int neighbor : dag.getNeighbors(i)) {
+                distanceMatrix[i][neighbor] = 1; // Direct dependency distance is 1
+            }
+        }
+
+        // Use Floyd-Warshall algorithm to compute the shortest paths
         for (int k = 1; k <= totalOpNum; k++) {
             for (int i = 1; i <= totalOpNum; i++) {
                 for (int j = 1; j <= totalOpNum; j++) {
-                    if (orderMatrix[i][k] == 1 && orderMatrix[k][j] == 1) {
-                        orderMatrix[i][j] = 1;
+                    if (distanceMatrix[i][j] > distanceMatrix[i][k] + distanceMatrix[k][j]) {
+                        distanceMatrix[i][j] = distanceMatrix[i][k] + distanceMatrix[k][j];
                     }
                 }
             }
         }
-//        printOrderMatrix(totalOpNum);
+
+        for (int i = 1; i <= totalOpNum; i++) {
+            for (int j = 1; j <= totalOpNum; j++) {
+                if (distanceMatrix[i][j] == INF) {
+                    distanceMatrix[i][j] = -1;
+                }
+            }
+        }
+//        printDistanceMatrix(totalOpNum);
     }
 
 
-
-    public void printOrderMatrix(int totalOpNum) {
+    public void printDistanceMatrix(int totalOpNum) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Order Matrix:\n");
+        sb.append("Distance Matrix:\n");
         for (int i = 1; i <= totalOpNum; i++) {
             for (int j = 1; j <= totalOpNum; j++) {
-                sb.append(orderMatrix[i][j]).append(" ");
+                int dis = distanceMatrix[i][j];
+                sb.append(dis).append(" ");
             }
             sb.append(System.lineSeparator());
         }

@@ -1,9 +1,6 @@
 package com.zihao.GA_TS_SLAB.Graph;
 
-import java.util.List;
-import java.util.Map;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 public class DirectedAcyclicGraph {
 
@@ -26,6 +23,43 @@ public class DirectedAcyclicGraph {
 
     public Map<Integer, List<Integer>> getAdjacencyList(){
         return adjacencyList;
+    }
+
+    public List<Integer> getParents(int node) {
+        List<Integer> parents = new ArrayList<>();
+        for (Map.Entry<Integer, List<Integer>> entry : adjacencyList.entrySet()) {
+            int fromNode = entry.getKey();
+            List<Integer> neighbors = entry.getValue();
+            if (neighbors.contains(node)) {
+                parents.add(fromNode);
+            }
+        }
+        return parents;
+    }
+
+    public List<Integer> getPath(int start, int end) {
+        Queue<List<Integer>> queue = new LinkedList<>();
+        Set<Integer> visited = new HashSet<>();
+        queue.add(Collections.singletonList(start));
+
+        while (!queue.isEmpty()) {
+            List<Integer> path = queue.poll();
+            int lastNode = path.get(path.size() - 1);
+
+            if (lastNode == end) {
+                return path;
+            }
+
+            if (!visited.contains(lastNode)) {
+                visited.add(lastNode);
+                for (Integer neighbor : getNeighbors(lastNode)) {
+                    List<Integer> newPath = new ArrayList<>(path);
+                    newPath.add(neighbor);
+                    queue.add(newPath);
+                }
+            }
+        }
+        return Collections.emptyList(); // 如果没有找到路径，返回空列表
     }
 
     public void printGraph() {
