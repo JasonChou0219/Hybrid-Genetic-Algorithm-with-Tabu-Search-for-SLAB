@@ -3,12 +3,7 @@ package com.zihao.GA_TS_SLAB.GA;
 import com.zihao.GA_TS_SLAB.Data.TCMB;
 import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Queue;
-import java.util.LinkedList;
+import java.util.*;
 
 
 /**
@@ -50,8 +45,117 @@ public class Utility {
         return makespan + sumViolation;
     }
 
+    public static int countViolations(Schedule schedule){
+        int count = 0;
+        Map<Integer, Integer> startTimes = schedule.getStartTimes();
+        int[] processingTimes = problemSetting.getProcessingTime();
+        List<TCMB> listTCMB = problemSetting.getTCMBList();
+//        System.out.println("=================================================================");
+        for (TCMB tcmb : listTCMB) {
+            int s_a = startTimes.getOrDefault(tcmb.getOp1(), 0);
+            int s_b = startTimes.getOrDefault(tcmb.getOp2(), 0);
+            int pi_a = processingTimes[tcmb.getOp1() - 1];
+            int pi_b = processingTimes[tcmb.getOp2() - 1];
 
-    private static int calculateMakespan(Schedule schedule) {
+            int timeLag = s_b - (s_a + pi_a);
+            if (timeLag > tcmb.getTimeConstraint()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public static int sumViolations(Schedule schedule){
+        int sumViolation = 0;
+        Map<Integer, Integer> startTimes = schedule.getStartTimes();
+        int[] processingTimes = problemSetting.getProcessingTime();
+        List<TCMB> listTCMB = problemSetting.getTCMBList();
+        for (TCMB tcmb : listTCMB) {
+            int s_a = startTimes.getOrDefault(tcmb.getOp1(), 0);
+            int s_b = startTimes.getOrDefault(tcmb.getOp2(), 0);
+            int pi_a = processingTimes[tcmb.getOp1() - 1];
+            int pi_b = processingTimes[tcmb.getOp2() - 1];
+
+            int timeLag = s_b - (s_a + pi_a);
+            if (timeLag > tcmb.getTimeConstraint()) {
+                sumViolation += timeLag - tcmb.getTimeConstraint();
+            }
+        }
+        return sumViolation;
+    }
+
+    public static double calculateEnergy(Schedule schedule, double curTemp, double initTemp){
+        int makespan = calculateMakespan(schedule);
+        double violation = getViolation(schedule);
+        return makespan + lambda(curTemp,initTemp) * violation;
+    }
+
+    public static double lambda(double curTemp, double initTemp) {
+        // 温度越低，惩罚权重越高
+        double base = 1000; // 基础惩罚系数
+        return base * (1 + (initTemp - curTemp) / initTemp);
+    }
+
+    public static double getViolation(Schedule schedule) {
+        Map<Integer, Integer> startTimes = schedule.getStartTimes();
+        int[] processingTimes = problemSetting.getProcessingTime();
+        List<TCMB> listTCMB = problemSetting.getTCMBList();
+        if (hasSevereViolations(schedule)) {
+            // 阶段1：平方惩罚严重超限
+            double sumSquare = 0;
+
+
+            for (TCMB tcmb : listTCMB) {
+                int s_a = startTimes.getOrDefault(tcmb.getOp1(), 0);
+                int s_b = startTimes.getOrDefault(tcmb.getOp2(), 0);
+                int pi_a = processingTimes[tcmb.getOp1() - 1];
+                int pi_b = processingTimes[tcmb.getOp2() - 1];
+
+                int timeLag = s_b - (s_a + pi_a);
+                if (timeLag > tcmb.getTimeConstraint()) {
+                    sumSquare += Math.pow(timeLag - tcmb.getTimeConstraint(), 2);
+                }
+            }
+            return sumSquare;
+        } else {
+            // 阶段2：混合惩罚
+            int count = 0;
+            int sumViolation = 0;
+            for (TCMB tcmb : listTCMB) {
+                int s_a = startTimes.getOrDefault(tcmb.getOp1(), 0);
+                int s_b = startTimes.getOrDefault(tcmb.getOp2(), 0);
+                int pi_a = processingTimes[tcmb.getOp1() - 1];
+                int pi_b = processingTimes[tcmb.getOp2() - 1];
+
+                int timeLag = s_b - (s_a + pi_a);
+                if (timeLag > tcmb.getTimeConstraint()) {
+                    sumViolation += timeLag - tcmb.getTimeConstraint();
+                    count++;
+                }
+            }
+            return 10 * count + sumViolation;
+        }
+    }
+
+    public static boolean hasSevereViolations(Schedule schedule){
+        Map<Integer, Integer> startTimes = schedule.getStartTimes();
+        int[] processingTimes = problemSetting.getProcessingTime();
+        List<TCMB> listTCMB = problemSetting.getTCMBList();
+        for (TCMB tcmb : listTCMB) {
+            int s_a = startTimes.getOrDefault(tcmb.getOp1(), 0);
+            int s_b = startTimes.getOrDefault(tcmb.getOp2(), 0);
+            int pi_a = processingTimes[tcmb.getOp1() - 1];
+            int pi_b = processingTimes[tcmb.getOp2() - 1];
+            int timeLag = s_b - (s_a + pi_a);
+            //判定严重violation的阈值
+            if (timeLag > 5) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static int calculateMakespan(Schedule schedule) {
         int makespan = 0;
         Map<Integer, Integer> startTimes = schedule.getStartTimes();
         int[] processingTimes = problemSetting.getProcessingTime();
@@ -64,6 +168,29 @@ public class Utility {
         }
 //        System.out.println("The makespan is " + makespan);
         return makespan;
+    }
+
+    public static double getSAFitness(Schedule schedule){
+        int makespan = calculateMakespan(schedule);
+        double totalPenalty = 0;
+
+        for (TCMB tcmb : ProblemSetting.getInstance().getTCMBList()) {
+            int opA = tcmb.getOp1();
+            int opB = tcmb.getOp2();
+            int endA = schedule.getStartTimes().get(opA)
+                    + ProblemSetting.getInstance().getProcessingTime()[opA - 1];
+            int startB = schedule.getStartTimes().get(opB);
+            int timeLag = startB - endA;
+
+            if (timeLag > tcmb.getTimeConstraint()) {
+                int violation = timeLag - tcmb.getTimeConstraint();
+                totalPenalty += Parameters.PENALTY_WEIGHT_1 * violation
+                        + Parameters.PENALTY_WEIGHT_2 * Math.pow(violation, 2);
+            }
+        }
+
+        return makespan + totalPenalty;
+
     }
 
 
@@ -165,6 +292,26 @@ public class Utility {
         System.out.println("========================================================================================");
     }
 
+    public static boolean checkViolation(Schedule schedule){
+        List<TCMB> listTCMB = problemSetting.getTCMBList();
+        Map<Integer, Integer> startTimes = schedule.getStartTimes();
+        int[] processingTimes = problemSetting.getProcessingTime();
+        for (TCMB tcmb : listTCMB) {
+            int s_a = startTimes.getOrDefault(tcmb.getOp1(), 0);
+            int s_b = startTimes.getOrDefault(tcmb.getOp2(), 0);
+            int pi_a = processingTimes[tcmb.getOp1() - 1];
+            int pi_b = processingTimes[tcmb.getOp2() - 1];
+
+            int timeLag = s_b - (s_a + pi_a);
+            if (timeLag > tcmb.getTimeConstraint()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+
     public static boolean checkViolation(Chromosome chromosome) {
         List<TCMB> tcmbList = problemSetting.getTCMBList();
         Schedule schedule = chromosome.getSchedule();
@@ -184,5 +331,12 @@ public class Utility {
         }
         return false;
     }
+
+//    public boolean checkDependencyBySchedule(Schedule schedule){
+//        Set<Integer> seen = new HashSet<>();
+//        int[][] distanceMatrix = problemSetting.getDistanceMatrix();
+//
+//    }
+
 
 }

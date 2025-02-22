@@ -294,6 +294,7 @@ public class Input {
         inputOp(new File(parentDir, operationFileName));
         inputDep(new File(parentDir, dependencyFileName));
         inputTCMB(new File(parentDir, TCMBFileName));
+//        testOutput();
     }
 
 

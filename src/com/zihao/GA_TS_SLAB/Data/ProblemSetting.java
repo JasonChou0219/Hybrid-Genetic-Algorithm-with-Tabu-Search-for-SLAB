@@ -23,16 +23,14 @@ public class ProblemSetting {
 
     //operation
     private int totalOpNum;
-    // a map that map from opID to its compatible machine list
     private int[] processingTime;
+    // a map that map from opID to its compatible machine list
     private Map<Integer, List<Integer>> opToCompatibleList;
     private Map<Integer, Integer> opToJob;
 
     // TCMB
     private List<TCMB> TCMBList;
 
-    // Delay list
-//    private List<Integer> delayList;
 
     private Set<Integer> tcmbOps;
 

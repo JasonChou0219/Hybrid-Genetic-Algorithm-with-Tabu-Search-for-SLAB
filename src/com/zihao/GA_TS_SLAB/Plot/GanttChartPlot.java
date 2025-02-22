@@ -23,9 +23,10 @@ import java.util.*;
 public class GanttChartPlot {
     public static void main(String[] args) {
 
-//        File parentDir = new File("src/Dataset/Gu2016/N1");
-        File parentDir = new File("src/Dataset/Gu2016/N5");
+        File parentDir = new File("src/Dataset/Gu2016/N1");
+//        File parentDir = new File("src/Dataset/Gu2016/N5");
 //        File parentDir = new File("src/Dataset/qPCR/N5");
+//        File parentDir = new File("src/Dataset/Test");
 //        File parentDir = new File("src/Dataset/qPCR_RNAseq/N5_N5");
 //        File parentDir = new File("src/Dataset/RNAseq/N5");
 
@@ -34,8 +35,14 @@ public class GanttChartPlot {
         input.getProblemDesFromFile();
 //        input.testOutput();
         HybridGA hybridGA = new HybridGA();
+        // 利用cp solver
         Schedule schedule = hybridGA.solve();
-
+//        Schedule schedule = hybridGA.CPsolve();
+        Map<Integer, Integer>map =  schedule.getStartTimes();
+        for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
+            System.out.println(
+                    "Operation " + entry.getKey() + " starts at " + entry.getValue() + ".");
+        }
 
 //        List<Integer> OS = new ArrayList<>(List.of(1, 3, 5, 4, 10, 2, 7, 8, 9, 6, 11, 12, 13, 14, 16, 15, 17));
 //        List<Integer> MS = new ArrayList<>(List.of(5, 5, 5, 3, 6, 2, 6, 5, 1, 4, 6, 2, 5, 4, 5, 6, 2));
@@ -46,18 +53,31 @@ public class GanttChartPlot {
 //        System.out.println("The fitness is " + chromosome.getFitness());
 
 
-        File scheduelFile = new File("src/com/zihao/GA_TS_SLAB/Plot/schedule.csv");
-        try (FileWriter writer = new FileWriter(scheduelFile)) {
+        File scheduleFile = new File("src/com/zihao/GA_TS_SLAB/Plot/schedule.csv");
+        try (FileWriter writer = new FileWriter(scheduleFile)) {
             writer.append("Operation,Machine,Start,End\n");
             Map<Integer, Integer> startTimes = schedule.getStartTimes();
-            Map<Integer, List<Integer>> machineAssignments = schedule.getMachineAssignments();
+            Map<Integer, Integer> assignedMachine = schedule.getAssignedMachine();  // 改用getAssignedMachine
             int[] processingTimes = ProblemSetting.getInstance().getProcessingTime();
 
-            for (Map.Entry<Integer, List<Integer>> entry : machineAssignments.entrySet()) {
+            // 创建一个按机器分组的Map
+            Map<Integer, List<Integer>> machineGroups = new HashMap<>();
+            for (Map.Entry<Integer, Integer> entry : assignedMachine.entrySet()) {
+                int operation = entry.getKey();
+                int machine = entry.getValue();
+                machineGroups.computeIfAbsent(machine, k -> new ArrayList<>()).add(operation);
+            }
+
+            // 对每个机器组的操作按开始时间排序并写入文件
+            for (Map.Entry<Integer, List<Integer>> entry : machineGroups.entrySet()) {
                 int machine = entry.getKey();
-                for (int operation : entry.getValue()) {
+                List<Integer> operations = entry.getValue();
+                // 按开始时间排序
+                operations.sort(Comparator.comparingInt(startTimes::get));
+
+                for (int operation : operations) {
                     int start = startTimes.get(operation);
-                    int end = start + processingTimes[operation - 1];
+                    int end = start + processingTimes[operation - 1];  // 注意这里使用operation-1
                     writer.append(operation + "," + machine + "," + start + "," + end + "\n");
                 }
             }
@@ -65,7 +85,7 @@ public class GanttChartPlot {
             e.printStackTrace();
         }
 
-        System.out.println("Schedule exported to " + scheduelFile.getAbsolutePath());
+        System.out.println("Schedule exported to " + scheduleFile.getAbsolutePath());
 //
 //
         File adjacencyCsvFile = new File("src/com/zihao/GA_TS_SLAB/Plot/adjacency_list.csv");

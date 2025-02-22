@@ -24,6 +24,7 @@ import com.zihao.GA_TS_SLAB.GA.TabuSearch;
 import com.zihao.GA_TS_SLAB.Data.TCMB;
 import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
 import com.zihao.GA_TS_SLAB.Graph.DirectedAcyclicGraph;
+import com.zihao.GA_TS_SLAB.GA.SimulatedAnnealing;
 
 import javax.swing.*;
 
@@ -123,7 +124,7 @@ public class HybridGA {
 //            TabuSearch tabuSearch = new TabuSearch(100, 15);
 
 
-            TabuSearchInsert tabuSearchInsert = new TabuSearchInsert(100);
+//            TabuSearchInsert tabuSearchInsert = new TabuSearchInsert(100);
             TabuSearchDelay tabuSearchDelay = new TabuSearchDelay(Parameters.TABU_MIN_ITERATION,
                     Parameters.TABU_MAX_ITERATION,
                     Parameters.TABU_SIZE,
@@ -181,6 +182,7 @@ public class HybridGA {
 //        System.out.println("The best fitness is " + best.getFitness());
         Utility.printViolation(best.getSchedule());
         best.checkPrecedenceConstraints();
+
 //
 //        System.out.println("Final population fitness values:");
 //        for (int i = 0; i < 500; i++) {
@@ -194,8 +196,6 @@ public class HybridGA {
 //        Chromosome revised = simulatedAnnealingAdjust(best, problemSetting);
 //        Chromosome revised = adjustDelayBasedOnViolations(best, problemSetting);
 //        checkChromosome(revised);
-
-
 
 //        saveFeatureVectors(parents);
 
@@ -223,6 +223,9 @@ public class HybridGA {
 //        Schedule adjust = solver.solve(best);
 //        Utility.printViolation(adjust);
 //        return adjust;
+//        Schedule opt = SimulatedAnnealing.optimize(best, 500, 0.97, 10000);
+
+//        Utility.printViolation(opt);
         return best.getSchedule();
     }
 
@@ -575,6 +578,17 @@ public class HybridGA {
 //    }
 
 
+    public Schedule CPsolve(){
+        System.out.println(System.getProperty("java.library.path"));
+        TcmbConstraintSolver cp = new TcmbConstraintSolver();
+        Chromosome[] parents = initPopulation();
 
+        Chromosome initBest = parents[getBestIndex(parents)];
+        Chromosome currentBest = parents[getBestIndex(parents)];
+        Chromosome best = new Chromosome(currentBest);
+        Schedule result = cp.solve(best);
+        Utility.checkViolation(result);
+        return result;
+    }
 
 }

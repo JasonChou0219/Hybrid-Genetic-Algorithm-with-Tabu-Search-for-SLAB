@@ -34,8 +34,6 @@ public class Chromosome implements Comparable<Chromosome> {
     private Random r;
     double fitness;
 
-
-
     public Chromosome(Chromosome other) {
         this.OS = new ArrayList<>(other.getOS());
         this.MS = Utility.compatibleAdjust(other.getMS(),other.getOS());
@@ -90,6 +88,7 @@ public class Chromosome implements Comparable<Chromosome> {
                 maxDelay.put(tcmb.getOp1(), randomDelay);
             }
         }
+
 //        for (TCMB tcmb : problemSetting.getTCMBList()) {
 //            int curDelay = maxDelay.getOrDefault(tcmb.getOp1(), 0);
 //            if (curDelay == 0) {
@@ -128,22 +127,20 @@ public class Chromosome implements Comparable<Chromosome> {
         checkCompatibleMachines();
     }
 
-    // Constructor by OS and MS, used to test GanttGraphPlot
-
+    /**
+     * 创建一个新的染色体，确保更新schedule和fitness
+     */
     public Chromosome(List<Integer> OS, List<Integer> MS, Map<Integer, Integer> delay) {
         this.OS = new ArrayList<>(OS);
-        this.MS = new ArrayList<>();
-        int totalOpNum = problemSetting.getTotalOpNum();
-
-        // Check compatibility and replace incompatible machines
-        r = new Random();
-        this.MS = Utility.compatibleAdjust(MS,OS);
-        this.delay = delay;
-        this.schedule = decode();
-        this.fitness = Utility.calculateFitness(schedule);
-        checkCompatibleMachines();
-        checkPrecedenceConstraints();
+        this.OS = Utility.compatibleAdjust(MS, OS); // 确保机器兼容性
+        this.delay = new HashMap<>(delay);
+        this.r = new Random();
+        updateScheduleAndFitness();
+        validateConstraints();
     }
+
+
+
 
     // Remember to update schedule and fitness after changing OS and MS
     public void setOS(List<Integer>OS) {
@@ -172,6 +169,19 @@ public class Chromosome implements Comparable<Chromosome> {
     public void setFitness(double fitness){
         this.fitness = fitness;
     }
+
+    /**
+     * 验证染色体的约束条件
+     */
+    private void validateConstraints() {
+        if (!checkPrecedenceConstraints()) {
+            throw new IllegalStateException("前序约束被违反");
+        }
+        if (!checkCompatibleMachines()) {
+            throw new IllegalStateException("机器兼容性约束被违反");
+        }
+    }
+
 
 
     // Check if OS meets the precedence constraints
@@ -205,6 +215,9 @@ public class Chromosome implements Comparable<Chromosome> {
         }
         return true;
     }
+
+
+
 
 
     // Check if MS meets the compatibility constraints of OS
@@ -359,26 +372,10 @@ public class Chromosome implements Comparable<Chromosome> {
             machineAssignments.get(k).add(a);
         }
 
-        // Initialize y_abk based on List_ass
-        Map<Integer, Map<Integer, Map<Integer, Integer>>> y_abk = new HashMap<>();
-        for (int k = 1; k <= totalMachines; k++) {
-            List<Integer> assignments = machineAssignments.get(k);
-            y_abk.put(k, new HashMap<>());
-            for (int i = 0; i < assignments.size() - 1; i++) {
-                for (int j = i + 1; j < assignments.size(); j++) {
-                    int a = assignments.get(i);
-                    int b = assignments.get(j);
-                    y_abk.get(k).putIfAbsent(a, new HashMap<>());
-                    y_abk.get(k).putIfAbsent(b, new HashMap<>());
-                    y_abk.get(k).get(a).put(b, 1);
-                    y_abk.get(k).get(b).put(a, -1);
-                }
-            }
-        }
-
         // Return the schedule solution
-        return new Schedule(idleTimePeriods, earliestStartTimes, assignment, startTimes, machineAssignments, y_abk, assignedMachine);
+        return new Schedule(startTimes, assignedMachine);
     }
+
 
     public double[] getFeatureVector() {
         // 将OS和MS序列转换为一个特征向量
@@ -396,24 +393,18 @@ public class Chromosome implements Comparable<Chromosome> {
 
     @Override
     public String toString() {
-        return "Chromosome{" +
-                "OS=" + OS +
-                ", MS=" + MS +
-                '}';
+        return String.format("Chromosome{fitness=%.2f, os=%s, ms=%s}",
+                fitness, OS, MS);
     }
 
-    // remained to be done
+
     // lead to reverse descending sort by fitness when using Collection.sort
     @Override
-    public int compareTo(Chromosome o) {
-        if (this.fitness < o.fitness) {
-            return -1;
-        } else if (this.fitness == o.fitness){
-            return 0;
-        } else{
-            return 1;
-        }
+    public int compareTo(Chromosome other) {
+        return Double.compare(this.fitness, other.fitness);
     }
+
+
 //    public static void main(String[] args) {
 //        Random random = new Random();
 //        File parentDir = new File("src/Dataset/Gu2016/N1");
