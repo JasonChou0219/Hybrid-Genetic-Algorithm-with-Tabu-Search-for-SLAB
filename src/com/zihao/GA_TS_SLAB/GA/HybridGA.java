@@ -25,6 +25,7 @@ import com.zihao.GA_TS_SLAB.Data.TCMB;
 import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
 import com.zihao.GA_TS_SLAB.Graph.DirectedAcyclicGraph;
 import com.zihao.GA_TS_SLAB.GA.SimulatedAnnealing;
+import com.zihao.GA_TS_SLAB.GA.CompoundMove;
 
 import javax.swing.*;
 
@@ -182,6 +183,11 @@ public class HybridGA {
 //        System.out.println("The best fitness is " + best.getFitness());
         Utility.printViolation(best.getSchedule());
         best.checkPrecedenceConstraints();
+
+        for (int i = 0; i < 2; i++) {  // 测试5次
+            System.out.println("\n=== Test " + (i+1) + " ===");
+            CompoundMoveTest.testSingleCompoundMove(best.getSchedule());
+        }
 
 //
 //        System.out.println("Final population fitness values:");

@@ -23,8 +23,8 @@ import java.util.*;
 public class GanttChartPlot {
     public static void main(String[] args) {
 
-        File parentDir = new File("src/Dataset/Gu2016/N1");
-//        File parentDir = new File("src/Dataset/Gu2016/N5");
+//        File parentDir = new File("src/Dataset/Gu2016/N1");
+        File parentDir = new File("src/Dataset/Gu2016/N5");
 //        File parentDir = new File("src/Dataset/qPCR/N5");
 //        File parentDir = new File("src/Dataset/Test");
 //        File parentDir = new File("src/Dataset/qPCR_RNAseq/N5_N5");
@@ -38,11 +38,11 @@ public class GanttChartPlot {
         // 利用cp solver
         Schedule schedule = hybridGA.solve();
 //        Schedule schedule = hybridGA.CPsolve();
-        Map<Integer, Integer>map =  schedule.getStartTimes();
-        for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
-            System.out.println(
-                    "Operation " + entry.getKey() + " starts at " + entry.getValue() + ".");
-        }
+//        Map<Integer, Integer>map =  schedule.getStartTimes();
+//        for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
+//            System.out.println(
+//                    "Operation " + entry.getKey() + " starts at " + entry.getValue() + ".");
+//        }
 
 //        List<Integer> OS = new ArrayList<>(List.of(1, 3, 5, 4, 10, 2, 7, 8, 9, 6, 11, 12, 13, 14, 16, 15, 17));
 //        List<Integer> MS = new ArrayList<>(List.of(5, 5, 5, 3, 6, 2, 6, 5, 1, 4, 6, 2, 5, 4, 5, 6, 2));

@@ -33,13 +33,10 @@ class MovePlan {
 	// 为了移动op创造时间窗口
 	List<OperationMove> spacePreparation;
 	OperationMove targetMove;
-	// 移动了
-	List<OperationMove> adjustments;
 
 	public MovePlan() {
 		this.spacePreparation = new ArrayList<>();
 		this.targetMove = null;
-		this.adjustments = new ArrayList<>();
 	}
 }
 
@@ -79,7 +76,7 @@ public class CompoundMove {
 		try {
 			MovePlan movePlan = prepareCompoundMove(schedule, targetOp);
 			if (movePlan == null) {
-				return false;
+				throw new RuntimeException("Move plan is null");
 			}
 			if (!executeMovePlan(schedule, movePlan)) {
 				throw new RuntimeException("Move plan execution failed");
@@ -89,6 +86,7 @@ public class CompoundMove {
 			}
 			return true;
 		} catch (Exception e) {
+			System.out.println("Compound move failed: " + e.getMessage());
 			initialState.restore(schedule);
 			return false;
 		}
@@ -101,25 +99,37 @@ public class CompoundMove {
 		MovePlan movePlan = new MovePlan();
 		int currentMachine = schedule.getAssignedMachine().get(targetOp);
 
-		// 尝试在当前机器上移动
-		if (canMoveOnCurrentMachine(schedule, targetOp)) {
-			movePlan.targetMove = calculateBestPosition(schedule, targetOp, currentMachine);
-			movePlan.adjustments = calculateRequiredAdjustments(schedule, targetOp, movePlan.targetMove);
+		Set<Integer> relatedOps = getRelatedTCMBOps(targetOp);
+		for (int relatedOp : relatedOps) {
+			List<OperationMove> spacePrep = calculateSpacePreparation(schedule, relatedOp,
+					schedule.getAssignedMachine().get(relatedOp));
+			if (spacePrep != null) {
+				movePlan.spacePreparation = spacePrep;
+				return movePlan;
+			}
+		}
+
+		// 2. 如果相关操作无法移动，尝试移动目标操作
+		List<OperationMove> targetSpacePrep = calculateSpacePreparation(schedule, targetOp, currentMachine);
+		if (targetSpacePrep != null) {
+			movePlan.spacePreparation = targetSpacePrep;
 			return movePlan;
 		}
 
 		// 尝试移动到其他兼容机器
 		for (int newMachine : getCompatibleMachines(targetOp)) {
 			if (newMachine != currentMachine) {
+				System.out.println("Cross Machine: attempting machine " + newMachine);
 				List<OperationMove> spacePrep = calculateSpacePreparation(schedule, targetOp, newMachine);
+
 				if (spacePrep != null) {
 					movePlan.spacePreparation = spacePrep;
 					movePlan.targetMove = calculateBestPosition(schedule, targetOp, newMachine);
-					movePlan.adjustments = calculateRequiredAdjustments(schedule, targetOp, movePlan.targetMove);
 					return movePlan;
 				}
 			}
 		}
+		System.out.println("Failed to find valid move plan");
 		return null;
 	}
 
@@ -138,14 +148,6 @@ public class CompoundMove {
 		if (!moveOperation(schedule, plan.targetMove)) {
 			return false;
 		}
-
-		// 执行调整移动
-		for (OperationMove adjustment : plan.adjustments) {
-			if (!moveOperation(schedule, adjustment)) {
-				return false;
-			}
-		}
-
 		return true;
 	}
 
@@ -537,19 +539,321 @@ public class CompoundMove {
 		return feasibleWindow != null && feasibleWindow.start != currentStart;
 	}
 
+
 	/**
-	 * 计算所需的调整
+	 * 识别会受到目标操作移动影响的所有操作
+	 * @param schedule 当前调度
+	 * @param targetOp 目标操作
+	 * @param newMachine 目标机器
+	 * @return 受影响的操作集合
 	 */
-	private static List<OperationMove> calculateRequiredAdjustments(Schedule schedule, int operationId, OperationMove targetMove) {
-		// TODO: 实现调整计算逻辑
-		return new ArrayList<>();
+	private static Set<Integer> identifyAffectedOperations(Schedule schedule, int targetOp, int newMachine) {
+		Set<Integer> affectedOps = new HashSet<>();
+
+		// 只关注目标机器上需要移动以腾出空间的操作
+		List<Integer> machineOps = schedule.getMachineOperations(newMachine);
+		// 找出会与目标操作理想时间窗口重叠的操作
+		TimeWindow idealWindow = calculateIdealTimeWindow(schedule, targetOp);
+		for (int op : machineOps) {
+			if (isOverlapping(schedule, op, idealWindow)) {
+				affectedOps.add(op);
+			}
+		}
+
+		return affectedOps;
+	}
+
+
+	/**
+	 * 计算操作的理想时间窗口
+	 * 基于DAG约束和TCMB约束，但不考虑机器上的其他操作
+	 */
+	private static TimeWindow calculateIdealTimeWindow(Schedule schedule, int operationId) {
+		// 获取基于DAG约束的最早开始和最晚结束时间
+		int earliestStart = calculateEarliestStartTime(schedule, operationId);
+		int latestEnd = calculateLatestEndTime(schedule, operationId);
+
+		// 加入一定的缓冲时间，给调整留出空间
+		int processingTime = ps.getProcessingTime()[operationId - 1];
+		int buffer = processingTime / 2;  // 缓冲时间可以根据实际情况调整
+
+		TimeWindow window = new TimeWindow(
+				Math.max(0, earliestStart - buffer),  // 确保不会小于0
+				latestEnd + buffer
+		);
+
+		return window;
 	}
 
 	/**
-	 * 计算空间准备移动
+	 * 检查操作是否与给定时间窗口重叠
 	 */
-	private static List<OperationMove> calculateSpacePreparation(Schedule schedule, int operationId, int newMachine) {
-		// TODO: 实现空间准备计算逻辑
-		return new ArrayList<>();
+	private static boolean isOverlapping(Schedule schedule, int operationId, TimeWindow window) {
+		int opStart = schedule.getStartTimes().get(operationId);
+		int opEnd = schedule.getOperationEndTime(operationId);
+
+		// 检查是否有任何重叠
+		// 两个时间段不重叠的条件：一个结束时间早于另一个开始时间
+		// 因此，重叠的条件是：不满足不重叠的条件
+		return !(opEnd <= window.start || opStart >= window.end);
 	}
+
+	/**
+	 * 检查两个时间窗口是否重叠
+	 */
+	private static boolean isWindowsOverlapping(TimeWindow window1, TimeWindow window2) {
+		return !(window1.end <= window2.start || window1.start >= window2.end);
+	}
+
+	/**
+	 * 计算并执行空间准备移动
+	 * @return 如果空间准备成功则返回所有必要的移动操作列表，否则返回null
+	 */
+	private static List<OperationMove> calculateSpacePreparation(Schedule schedule, int targetOp, int machineId) {
+		List<OperationMove> preparations = new ArrayList<>();
+
+		// 1. 获取与targetOp相关的所有TCMB约束操作
+		Set<Integer> relatedOps = getRelatedTCMBOps(targetOp);
+
+		// 2. 对于每个相关操作，计算理想时间窗口
+		Map<Integer, TimeWindow> idealWindows = new HashMap<>();
+		for (int op : relatedOps) {
+			idealWindows.put(op, calculateIdealTimeWindow(schedule, op));
+		}
+
+		// 3. 识别需要移动的操作（包括中间阻碍的操作）
+		Set<Integer> opsToMove = identifyBlockingOperations(schedule, idealWindows);
+
+		// 4. 尝试不同的移动组合
+		return tryVariousMoveCombinations(schedule, targetOp, opsToMove, machineId);
+	}
+
+	/**
+	 * 尝试不同的移动组合来创造空间
+	 * @param schedule 当前调度
+	 * @param targetOp 目标操作
+	 * @param opsToMove 需要移动的操作集合
+	 * @param machineId 目标机器
+	 * @return 可行的移动列表，如果找不到则返回null
+	 */
+	private static List<OperationMove> tryVariousMoveCombinations(Schedule schedule,
+																  int targetOp,
+																  Set<Integer> opsToMove,
+																  int machineId) {
+		List<OperationMove> successfulMoves = new ArrayList<>();
+
+		// 1. 按照开始时间排序操作，确保移动顺序合理
+		List<Integer> sortedOps = new ArrayList<>(opsToMove);
+		sortedOps.sort(Comparator.comparingInt(op -> schedule.getStartTimes().get(op)));
+
+		// 2. 对于每个操作，尝试所有可能的移动位置
+		for (int op : sortedOps) {
+			// 保存当前操作的原始位置
+			int originalMachine = schedule.getAssignedMachine().get(op);
+			int originalStart = schedule.getStartTimes().get(op);
+
+			// 获取该操作的所有可能移动位置
+			List<PossibleMove> possibleMoves = getPossibleMoves(schedule, op);
+
+			for (PossibleMove move : possibleMoves) {
+				// 尝试移动
+				schedule.getAssignedMachine().put(op, move.machine);
+				schedule.getStartTimes().put(op, move.startTime);
+
+				// 检查移动后是否创造了足够的空间
+				if (isSpaceSufficient(schedule, targetOp, machineId)) {
+					successfulMoves.add(new OperationMove(op, move.machine, move.startTime));
+					break;  // 找到一个可行移动就继续处理下一个操作
+				}
+
+				// 如果移动不成功，恢复原位置
+				schedule.getAssignedMachine().put(op, originalMachine);
+				schedule.getStartTimes().put(op, originalStart);
+			}
+
+			// 如果当前操作无法找到可行的移动位置，返回null
+			if (!successfulMoves.contains(new OperationMove(op,
+					schedule.getAssignedMachine().get(op),
+					schedule.getStartTimes().get(op)))) {
+				return null;
+			}
+		}
+
+		return successfulMoves;
+	}
+
+	/**
+	 * 辅助类：表示可能的移动位置
+	 */
+	private static class PossibleMove {
+		int machine;
+		int startTime;
+
+		PossibleMove(int machine, int startTime) {
+			this.machine = machine;
+			this.startTime = startTime;
+		}
+	}
+
+	/**
+	 * 获取操作的所有可能移动位置
+	 */
+	private static List<PossibleMove> getPossibleMoves(Schedule schedule, int operationId) {
+		List<PossibleMove> moves = new ArrayList<>();
+		int processingTime = ps.getProcessingTime()[operationId - 1];
+
+		// 尝试当前机器和兼容机器
+		List<Integer> machines = new ArrayList<>(ps.getOpToCompatibleList().get(operationId));
+
+		for (int machine : machines) {
+			// 获取机器上的空闲时间段
+			List<int[]> idlePeriods = schedule.getIdleTimePeriods(machine);
+
+			for (int[] period : idlePeriods) {
+				// 考虑空闲时段的起始位置
+				if (period[1] - period[0] >= processingTime) {
+					moves.add(new PossibleMove(machine, period[0]));
+
+					// 如果空闲时段足够大，也考虑结束位置
+					if (period[1] - period[0] > processingTime) {
+						moves.add(new PossibleMove(machine, period[1] - processingTime));
+					}
+
+					// 如果空闲时段很大，可以考虑中间位置
+					if (period[1] - period[0] > 2 * processingTime) {
+						int midPoint = (period[0] + period[1] - processingTime) / 2;
+						moves.add(new PossibleMove(machine, midPoint));
+					}
+				}
+			}
+		}
+
+		return moves;
+	}
+
+	/**
+	 * 检查是否为目标操作创造了足够的空间
+	 */
+	/**
+	 * 检查是否为目标操作创造了足够的空间
+	 */
+	private static boolean isSpaceSufficient(Schedule schedule, int targetOp, int machineId) {
+		TimeWindow idealWindow = calculateIdealTimeWindow(schedule, targetOp);
+		List<int[]> idlePeriods = schedule.getIdleTimePeriods(machineId);
+		int procTime = ps.getProcessingTime()[targetOp - 1];
+
+		// 检查是否有足够大的空闲时段，且不与其他操作重叠
+		for (int[] period : idlePeriods) {
+			// 时间窗口要足够大
+			if (period[1] - period[0] >= procTime) {
+				// 检查是否与理想时间窗口有重叠
+				int start = Math.max(period[0], idealWindow.start);
+				int end = Math.min(period[1], idealWindow.end);
+
+				if (end - start >= procTime) {
+					// 检查这个位置是否可行
+					return schedule.canMoveOperation(targetOp, machineId, start);
+				}
+			}
+		}
+
+		return false;
+	}
+
+
+
+	// 获取所有相关的TCMB约束操作
+	private static Set<Integer> getRelatedTCMBOps(int targetOp) {
+		Set<Integer> relatedOps = new HashSet<>();
+		for (TCMB tcmb : ps.getTCMBList()) {
+			if (tcmb.getOp1() == targetOp) {
+				relatedOps.add(tcmb.getOp2());
+			} else if (tcmb.getOp2() == targetOp) {
+				relatedOps.add(tcmb.getOp1());
+			}
+		}
+		return relatedOps;
+	}
+
+	/**
+	 * 识别所有阻碍理想时间窗口的操作
+	 */
+	private static Set<Integer> identifyBlockingOperations(Schedule schedule, Map<Integer, TimeWindow> idealWindows) {
+		Set<Integer> blockingOps = new HashSet<>();
+
+		for (Map.Entry<Integer, TimeWindow> entry : idealWindows.entrySet()) {
+			int op = entry.getKey();
+			TimeWindow window = entry.getValue();
+
+			// 检查每个机器上的操作
+			for (int machineId = 1; machineId <= ps.getMachineNum(); machineId++) {
+				List<Integer> machineOps = schedule.getMachineOperations(machineId);
+				for (int machineOp : machineOps) {
+					if (machineOp != op && isOverlapping(schedule, machineOp, window)) {
+						blockingOps.add(machineOp);
+					}
+				}
+			}
+		}
+
+		return blockingOps;
+	}
+
+
+	/**
+	 * 为受影响的操作计算安全的新位置
+	 * @param schedule 当前调度
+	 * @param affectedOp 受影响的操作
+	 * @return 移动方案，如果无法找到安全位置则返回null
+	 */
+	private static OperationMove calculateSafePosition(Schedule schedule, int affectedOp) {
+		int currentMachine = schedule.getAssignedMachine().get(affectedOp);
+		List<Integer> compatibleMachines = ps.getOpToCompatibleList().get(affectedOp);
+
+		// 首先尝试在当前机器上找位置
+		OperationMove move = tryFindPositionOnMachine(schedule, affectedOp, currentMachine);
+		if (move != null) {
+			return move;
+		}
+
+		// 如果当前机器不行，尝试其他兼容机器
+		for (int machine : compatibleMachines) {
+			if (machine != currentMachine) {
+				move = tryFindPositionOnMachine(schedule, affectedOp, machine);
+				if (move != null) {
+					return move;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * 在指定机器上尝试找到安全位置
+	 */
+	private static OperationMove tryFindPositionOnMachine(Schedule schedule, int operationId, int machineId) {
+		TimeWindow window = calculateFeasibleTimeWindow(schedule, operationId, machineId);
+		if (window == null) {
+			return null;
+		}
+
+		int processingTime = ps.getProcessingTime()[operationId - 1];
+		List<Integer> candidatePositions = generateCandidatePositions(window, processingTime);
+
+		double bestScore = Double.NEGATIVE_INFINITY;
+		Integer bestPosition = null;
+
+		for (int position : candidatePositions) {
+			double score = evaluatePosition(schedule, operationId, machineId, position);
+			if (score > bestScore) {
+				bestScore = score;
+				bestPosition = position;
+			}
+		}
+
+		return bestPosition != null ? new OperationMove(operationId, machineId, bestPosition) : null;
+	}
+
+
 }

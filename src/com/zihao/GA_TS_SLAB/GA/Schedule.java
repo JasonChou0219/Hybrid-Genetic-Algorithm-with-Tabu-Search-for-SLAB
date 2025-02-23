@@ -2,6 +2,8 @@ package com.zihao.GA_TS_SLAB.GA;
 
 import java.util.*;
 
+import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
+
 /**
  * Description: concrete schedule solution
  */
@@ -13,19 +15,12 @@ import java.util.*;
  */
 public class Schedule {
     // 静态成员，存储所有操作的处理时间（从0开始索引）
-    private static int[] processingTime;
+    private static ProblemSetting pb = ProblemSetting.getInstance();
 
     // 核心数据结构
     private Map<Integer, Integer> startTimes;      // 存储每个操作的开始时间，key是操作ID（从1开始）
     private Map<Integer, Integer> assignedMachine; // 存储每个操作分配的机器，key是操作ID（从1开始）
 
-    /**
-     * 初始化处理时间数组
-     * @param processingTime 处理时间数组，索引从0开始，对应操作ID-1
-     */
-    public static void initProcessingTime(int[] processingTime) {
-        Schedule.processingTime = processingTime;
-    }
 
     /**
      * 构造函数
@@ -109,7 +104,8 @@ public class Schedule {
             int currentOp = machineOps.get(i);
             int nextOp = machineOps.get(i + 1);
 
-            int currentEnd = startTimes.get(currentOp) + processingTime[currentOp - 1];
+            int currentEnd = startTimes.get(currentOp) +
+                    pb.getProcessingTime()[currentOp - 1];
             int nextStart = startTimes.get(nextOp);
 
             if (nextStart > currentEnd) {
@@ -128,7 +124,7 @@ public class Schedule {
      * @return 是否可以移动
      */
     public boolean canMoveOperation(int operationId, int newMachineId, int newStartTime) {
-        int opDuration = processingTime[operationId - 1];
+        int opDuration = pb.getProcessingTime()[operationId - 1];
 
         // 检查新机器是否为空
         List<Integer> machineOps = getMachineOperations(newMachineId);
@@ -147,7 +143,7 @@ public class Schedule {
 
         // 检查是否可以放在最后一个操作之后
         int lastOp = machineOps.get(machineOps.size() - 1);
-        int lastEndTime = startTimes.get(lastOp) + processingTime[lastOp - 1];
+        int lastEndTime = startTimes.get(lastOp) + pb.getProcessingTime()[lastOp - 1];
 
         return newStartTime >= lastEndTime;
     }
@@ -158,7 +154,7 @@ public class Schedule {
      * @return 操作的结束时间
      */
     public int getOperationEndTime(int operationId) {
-        return startTimes.get(operationId) + processingTime[operationId - 1];
+        return startTimes.get(operationId) + pb.getProcessingTime()[operationId - 1];
     }
 
     /**
@@ -205,7 +201,7 @@ public class Schedule {
             for (int op : ops) {
                 sb.append("  Operation ").append(op)
                         .append(": start=").append(startTimes.get(op))
-                        .append(", duration=").append(processingTime[op - 1])
+                        .append(", duration=").append(pb.getProcessingTime()[op - 1])
                         .append("\n");
             }
         }
