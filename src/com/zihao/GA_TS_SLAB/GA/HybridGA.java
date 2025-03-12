@@ -1,33 +1,16 @@
 package com.zihao.GA_TS_SLAB.GA;
 
-import java.io.File;
-//import java.util.ArrayList;
-//import java.util.List;
-//import java.util.Random;
-//import java.util.Arrays;
-//import java.util.Collections;
-//import java.util.Map;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.BufferedWriter;
 import java.util.*;
 
 
-import java.util.stream.Collectors;
-
-
-import com.zihao.GA_TS_SLAB.GA.Parameters;
-import com.zihao.GA_TS_SLAB.Data.Input;
-import com.zihao.GA_TS_SLAB.GA.Utility;
-import com.zihao.GA_TS_SLAB.GA.Operator;
-import com.zihao.GA_TS_SLAB.GA.TabuSearch;
 import com.zihao.GA_TS_SLAB.Data.TCMB;
 import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
 import com.zihao.GA_TS_SLAB.Graph.DirectedAcyclicGraph;
-import com.zihao.GA_TS_SLAB.GA.SimulatedAnnealing;
-import com.zihao.GA_TS_SLAB.GA.CompoundMove;
-
-import javax.swing.*;
+import com.zihao.GA_TS_SLAB.Test.TestConstraint;
 
 
 public class HybridGA {
@@ -181,13 +164,49 @@ public class HybridGA {
 
 //        System.out.println("The initial best fitness is " + initBest.getFitness());
 //        System.out.println("The best fitness is " + best.getFitness());
+
+
         Utility.printViolation(best.getSchedule());
         best.checkPrecedenceConstraints();
 
-        for (int i = 0; i < 2; i++) {  // 测试5次
-            System.out.println("\n=== Test " + (i+1) + " ===");
-            CompoundMoveTest.testSingleCompoundMove(best.getSchedule());
+        // Create SAFM optimizer with customized parameters
+        SAFM safm = new SAFM(10000, 0.98, 5000);
+
+        // Apply SAFM to optimize the best solution from GA
+        Schedule optimizedSchedule = safm.optimize(best);
+
+        Utility.printViolation(optimizedSchedule);
+
+        // Report TCMB violations after SAFM
+        System.out.println("\nTCMB violations after SAFM:");
+//        Utility.printViolation(optimizedSchedule);
+//        optimizedSchedule.checkMachineOccupation();
+//        optimizedSchedule.checkCompatibleMachines();
+//        optimizedSchedule.checkPrecedenceConstraints();
+
+
+//			System.out.println(schedule);
+
+        TestConstraint test = new TestConstraint("qPCR_RNAseq_N5");
+
+
+        if (!test.checkDependency(optimizedSchedule)){
+            System.out.println("The schedule has violated precedence constraint");
         }
+        if (!test.checkMachineConstraint(optimizedSchedule)){
+            System.out.println("The schedule has violates machine constraint");
+        }
+        if (!test.checkTCMBConstraint(optimizedSchedule)){
+            System.out.println("The schedule has violated TCMB constraint");
+        }
+        if (!test.checkMachineOccupation(optimizedSchedule)){
+            System.out.println("The schedule has violated machine occupation constraint");
+        }
+
+//        for (int i = 0; i < 1; i++) {  // 测试5次
+//            System.out.println("\n=== Test " + (i+1) + " ===");
+//            CompoundMoveTest.testSingleCompoundMove(best.getSchedule());
+//        }
 
 //
 //        System.out.println("Final population fitness values:");
@@ -232,8 +251,10 @@ public class HybridGA {
 //        Schedule opt = SimulatedAnnealing.optimize(best, 500, 0.97, 10000);
 
 //        Utility.printViolation(opt);
-        return best.getSchedule();
+//        return best.getSchedule();
+        return optimizedSchedule;
     }
+
 
 
     public void conjuncitvePlot (Chromosome chromosome){
@@ -596,5 +617,7 @@ public class HybridGA {
         Utility.checkViolation(result);
         return result;
     }
+
+
 
 }

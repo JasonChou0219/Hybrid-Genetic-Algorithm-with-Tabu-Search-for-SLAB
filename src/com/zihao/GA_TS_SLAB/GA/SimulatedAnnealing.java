@@ -1,11 +1,7 @@
 package com.zihao.GA_TS_SLAB.GA;
 
 import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
-import com.zihao.GA_TS_SLAB.Data.TCMB;
-import com.zihao.GA_TS_SLAB.GA.Utility;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 public class SimulatedAnnealing {
@@ -13,10 +9,34 @@ public class SimulatedAnnealing {
     private static final double COOLING_RATE = 0.95;
     private static final double FINAL_TEMPERATURE = 0.1;
     private static final int MAX_ITERATIONS = 100;
+    private static final int MAX_CONSECUTIVE_FAILURES = 10;
+    private static final double REHEATING_FACTOR = 1.5;
 
     // 记录最优解
     private Schedule bestSchedule;
     private double bestEnergy;
+
+
+    // 复合操作权重
+    private double swapWeight = 0.4;
+    private double insertWeight = 0.4;
+    private double reassignWeight = 0.2;
+
+    // 能量函数权重
+    private double makespanWeight = 0.4;
+    private double tcmbViolationWeight = 0.5;
+    private double balanceWeight = 0.1;
+
+
+    // 问题设置引用
+    private final ProblemSetting ps = ProblemSetting.getInstance();
+
+    // 复合操作管理器
+    private CompoundMoveManager moveManager;
+
+    // 随机数生成器
+    private final Random random = new Random();
+
 
     /**
      * SA算法主体
@@ -32,32 +52,48 @@ public class SimulatedAnnealing {
         double currentEnergy = calculateEnergy(currentSchedule);
         bestEnergy = currentEnergy;
 
+        int iteration = 0;
+        int failureCounter = 0;
+
         // 温度循环
         while (currentTemperature > FINAL_TEMPERATURE) {
             // 在当前温度下的迭代
             for (int i = 0; i < MAX_ITERATIONS; i++) {
                 // 生成新解
-                Schedule newSchedule = generateNeighbor(currentSchedule);
+                Schedule newSchedule =  generateNeighbor(currentSchedule);
 
-                // 在评估能量之前压缩makespan
-                newSchedule = compressMakespan(newSchedule);
 
-                // 计算新解的能量
-                double newEnergy = calculateEnergy(newSchedule);
+                if (newSchedule != null) {
 
-                // 计算能量差
-                double deltaEnergy = newEnergy - currentEnergy;
+                    // 在评估能量之前压缩makespan
+                    newSchedule = compressMakespan(newSchedule);
 
-                // 判断是否接受新解
-                if (acceptNewSolution(deltaEnergy, currentTemperature)) {
-                    currentSchedule = new Schedule(newSchedule);
-                    currentEnergy = newEnergy;
+                    // 计算新解的能量
+                    double newEnergy = calculateEnergy(newSchedule);
 
-                    // 更新最优解
-                    if (currentEnergy < bestEnergy) {
-                        bestSchedule = new Schedule(currentSchedule);
-                        bestEnergy = currentEnergy;
+                    // 计算能量差
+                    double deltaEnergy = newEnergy - currentEnergy;
+
+                    // 判断是否接受新解
+                    if (acceptNewSolution(deltaEnergy, currentTemperature)) {
+                        currentSchedule = new Schedule(newSchedule);
+                        currentEnergy = newEnergy;
+
+                        // 更新最优解
+                        if (currentEnergy < bestEnergy) {
+                            bestSchedule = new Schedule(currentSchedule);
+                            bestEnergy = currentEnergy;
+                        }
+                    } else {
+                        failureCounter++;
                     }
+                } else {
+                    failureCounter++;
+                }
+                if (failureCounter >= MAX_CONSECUTIVE_FAILURES) {
+                    currentTemperature *= REHEATING_FACTOR; // 升温
+                    failureCounter = 0;
+                    System.out.println("重加热: 温度升至 " + currentTemperature);
                 }
             }
 
@@ -72,11 +108,26 @@ public class SimulatedAnnealing {
      * 计算调度方案的能量值（目标函数值）
      * 这里主要关注TCMB约束违反程度
      */
+    /**
+     * 计算调度方案的能量值（目标函数值）
+     */
     private double calculateEnergy(Schedule schedule) {
-        // TODO: 实现能量计算
-        // 1. 计算TCMB约束违反的总时间
-        // 2. 添加适当的惩罚权重
-        return 0.0;
+        // 1. 计算makespan
+        int makespan = Utility.calculateMakespan(schedule);
+
+        // 2. 计算TCMB约束违反程度
+        // todo TCMB vioaltion calculation for Schedule
+        // todo 考虑程度degree 和 范围的数量
+//        double tcmbViolation = calculateTCMBViolation(schedule);
+
+//        // 3. 计算负载平衡度
+//        double balance = calculateLoadBalance(schedule);
+
+        // 加权求和
+//        return makespanWeight * makespan +
+//                tcmbViolationWeight * tcmbViolation +
+//                balanceWeight * balance;
+        return makespanWeight * makespan;
     }
 
     /**
@@ -85,10 +136,24 @@ public class SimulatedAnnealing {
      */
     private Schedule generateNeighbor(Schedule currentSchedule) {
         Schedule newSchedule = new Schedule(currentSchedule);
-        // TODO: 实现邻域生成
-        // 1. 随机选择一个操作
-        // 2. 应用复合移动操作
-        // 3. 如果移动失败，可以选择其他操作尝试
+        // 根据权重随机选择操作类型
+        double r = random.nextDouble();
+
+//        if (r < swapWeight) {
+//            return moveManager.applyCompoundSwap(schedule);
+//        } else if (r < swapWeight + insertWeight) {
+//            return moveManager.applyCompoundInsert(schedule);
+//        } else {
+//            return moveManager.applyCompoundReassign(schedule);
+//        }
+
+//        if (r < swapWeight) {
+//            return moveManager.applyCompoundSwap(schedule);
+//        } else if (r < swapWeight + insertWeight) {
+//            return moveManager.applyCompoundInsert(schedule);
+//        } else {
+//            return moveManager.applyCompoundReassign(schedule);
+//        }
         return newSchedule;
     }
 

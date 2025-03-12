@@ -2,6 +2,7 @@ package com.zihao.GA_TS_SLAB.GA;
 
 import com.zihao.GA_TS_SLAB.Data.TCMB;
 import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
+import com.zihao.GA_TS_SLAB.Test.TestConstraint;
 
 import java.util.*;
 
@@ -337,6 +338,7 @@ public class Utility {
 //        int[][] distanceMatrix = problemSetting.getDistanceMatrix();
 //
 //    }
+
 
 
 }

@@ -2,8 +2,7 @@ package com.zihao.GA_TS_SLAB.GA;
 
 import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
 import com.zihao.GA_TS_SLAB.Data.TCMB;
-import com.zihao.GA_TS_SLAB.GA.CompoundMove;
-import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
+import com.zihao.GA_TS_SLAB.GA.Backup.CompoundMove;
 
 import java.util.ArrayList;
 import java.util.HashMap;

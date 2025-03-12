@@ -2,13 +2,312 @@ package com.zihao.GA_TS_SLAB.GA;
 
 import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
 import com.zihao.GA_TS_SLAB.Data.TCMB;
-import com.zihao.GA_TS_SLAB.Graph.DirectedAcyclicGraph;
 
 import java.util.*;
 
 /**
- * 调度状态类，用于保存和恢复调度状态
+ * 复合移动操作的抽象基类
+ * 所有具体的复合移动操作（交换、插入、重分配）都应继承此类
  */
+abstract class CompoundMove {
+	// 问题设置引用
+	protected final ProblemSetting ps = ProblemSetting.getInstance();
+
+	// 随机数生成器
+	protected final Random random = new Random();
+
+	/**
+	 * 执行复合移动操作
+	 * @param schedule 当前调度
+	 * @return 操作是否成功
+	 */
+	public boolean execute(Schedule schedule) {
+		// 保存原始状态（用于回滚）
+		ScheduleState originalState = new ScheduleState(schedule);
+
+		try {
+			// 1. 选择目标操作
+			if (!selectTargetOperations(schedule)) {
+				return false;
+			}
+
+			// 2. 执行具体的移动操作
+			if (!doMove(schedule)) {
+				throw new Exception("移动操作执行失败");
+			}
+
+			// 3. 检查DAG约束
+			if (!validateDAGConstraints(schedule)) {
+				throw new Exception("违反DAG约束");
+			}
+
+			// 4. 解决机器冲突
+			if (!resolveConflic(schedule)) {
+				throw new Exception("无法解决机器冲突");
+			}
+
+			// 5. 最终验证所有约束
+			if (!validateSchedule(schedule)) {
+				throw new Exception("最终验证失败");
+			}
+
+			return true;
+		} catch (Exception e) {
+			// 操作失败，恢复原始状态
+			originalState.restore(schedule);
+			return false;
+		}
+	}
+
+	/**
+	 * 获取操作类型
+	 * @return 操作类型的枚举值
+	 */
+	public abstract MoveType getType();
+
+	/**
+	 * 选择操作的目标（子类必须实现）
+	 * @param schedule 当前调度
+	 * @return 是否成功选择目标
+	 */
+	protected abstract boolean selectTargetOperations(Schedule schedule);
+
+	/**
+	 * 执行具体的移动操作（子类必须实现）
+	 * @param schedule 当前调度
+	 * @return 操作是否成功
+	 */
+	protected abstract boolean doMove(Schedule schedule);
+
+	/**
+	 * 解决可能的机器冲突（子类必须实现）
+	 * @param schedule 当前调度
+	 * @return 是否成功解决冲突
+	 */
+	protected abstract boolean resolveConflic(Schedule schedule);
+
+	/**
+	 * 验证DAG约束
+	 * @param schedule 当前调度
+	 * @return 约束是否满足
+	 */
+	protected boolean validateDAGConstraints(Schedule schedule) {
+		Map<Integer, List<Integer>> dag = ps.getDag().getAdjacencyList();
+
+		for (Map.Entry<Integer, List<Integer>> entry : dag.entrySet()) {
+			int op = entry.getKey();
+			List<Integer> successors = entry.getValue();
+
+			if (successors != null) {
+				int opEndTime = schedule.getOperationEndTime(op);
+
+				for (int successor : successors) {
+					int successorStartTime = schedule.getStartTimes().get(successor);
+
+					if (opEndTime > successorStartTime) {
+						return false;
+					}
+				}
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * 验证机器占用约束
+	 * @param schedule 当前调度
+	 * @return 约束是否满足
+	 */
+	protected boolean validateMachineOccupation(Schedule schedule) {
+		// 按机器分组操作
+		Map<Integer, List<Integer>> machineOps = new HashMap<>();
+
+		for (Map.Entry<Integer, Integer> entry : schedule.getAssignedMachine().entrySet()) {
+			int op = entry.getKey();
+			int machine = entry.getValue();
+
+			machineOps.computeIfAbsent(machine, k -> new ArrayList<>()).add(op);
+		}
+
+		// 检查每台机器上的操作是否有重叠
+		for (List<Integer> ops : machineOps.values()) {
+			// 按开始时间排序
+			ops.sort(Comparator.comparingInt(op -> schedule.getStartTimes().get(op)));
+
+			// 检查相邻操作是否重叠
+			for (int i = 0; i < ops.size() - 1; i++) {
+				int currentOp = ops.get(i);
+				int nextOp = ops.get(i + 1);
+
+				int currentEndTime = schedule.getOperationEndTime(currentOp);
+				int nextStartTime = schedule.getStartTimes().get(nextOp);
+
+				if (currentEndTime > nextStartTime) {
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * 综合验证所有约束
+	 * @param schedule 当前调度
+	 * @return 约束是否满足
+	 */
+	protected boolean validateSchedule(Schedule schedule) {
+		// 验证DAG约束
+		if (!validateDAGConstraints(schedule)) {
+			return false;
+		}
+
+		// 验证机器占用约束
+		if (!validateMachineOccupation(schedule)) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * 计算操作的最早可能开始时间（基于DAG约束）
+	 */
+	protected int calculateEarliestStartTime(Schedule schedule, int op) {
+		int earliestStart = 0;
+		List<Integer> predecessors = ps.getDag().getParents(op);
+
+		if (predecessors != null) {
+			for (int predecessor : predecessors) {
+				int predecessorEnd = schedule.getOperationEndTime(predecessor);
+				earliestStart = Math.max(earliestStart, predecessorEnd);
+			}
+		}
+
+		return earliestStart;
+	}
+
+	/**
+	 * 计算操作的最晚可能结束时间（基于DAG约束）
+	 */
+	protected int calculateLatestEndTime(Schedule schedule, int op) {
+		int latestEnd = Integer.MAX_VALUE;
+		List<Integer> successors = ps.getDag().getNeighbors(op);
+
+		if (successors != null && !successors.isEmpty()) {
+			for (int successor : successors) {
+				int successorStart = schedule.getStartTimes().get(successor);
+				latestEnd = Math.min(latestEnd, successorStart);
+			}
+		}
+
+		// 如果没有后继操作，使用一个合理的上界
+		if (latestEnd == Integer.MAX_VALUE) {
+			//todo 这里的边界要考虑
+			//todo 这里的调整范围应该根据temperature决定
+			latestEnd = Utility.calculateMakespan(schedule) + 10; // 一个足够大的缓冲区
+		}
+
+		return latestEnd;
+	}
+
+	/**
+	 * 判断两个操作是否有直接依赖关系（DAG约束）
+	 */
+	protected boolean hasDirectDependency(int op1, int op2) {
+		//todo 不只是紧挨着的successor和predecessor
+ 		Map<Integer, List<Integer>> dag = ps.getDag().getAdjacencyList();
+
+		// 检查op1是否是op2的前驱
+		List<Integer> op1Successors = dag.get(op1);
+		if (op1Successors != null && op1Successors.contains(op2)) {
+			return true;
+		}
+
+		// 检查op2是否是op1的前驱
+		List<Integer> op2Successors = dag.get(op2);
+		if (op2Successors != null && op2Successors.contains(op1)) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * 寻找机器上的空闲时段
+	 * @param schedule 当前调度
+	 * @param machine 机器ID
+	 * @param excludeOp 要排除的操作ID（-1表示不排除任何操作）
+	 * @return 空闲时段列表，每个时段为[开始时间, 结束时间]
+	 */
+	protected List<int[]> findIdlePeriods(Schedule schedule, int machine, int excludeOp) {
+		List<int[]> idlePeriods = new ArrayList<>();
+
+		// 获取该机器上的所有操作（排除指定操作）
+		List<Integer> operations = new ArrayList<>();
+		for (Map.Entry<Integer, Integer> entry : schedule.getAssignedMachine().entrySet()) {
+			if (entry.getValue() == machine && entry.getKey() != excludeOp) {
+				operations.add(entry.getKey());
+			}
+		}
+
+		// 按开始时间排序
+		operations.sort(Comparator.comparingInt(op -> schedule.getStartTimes().get(op)));
+
+		// 计算空闲时段
+		int lastEndTime = 0;
+		for (int op : operations) {
+			int startTime = schedule.getStartTimes().get(op);
+
+			if (startTime > lastEndTime) {
+				idlePeriods.add(new int[]{lastEndTime, startTime});
+			}
+
+			lastEndTime = schedule.getOperationEndTime(op);
+		}
+
+		// 添加最后一段空闲时间（到infinity）
+		idlePeriods.add(new int[]{lastEndTime, Integer.MAX_VALUE});
+
+		return idlePeriods;
+	}
+
+	/**
+	 * 根据TCMB违反程度排序操作
+	 */
+	protected List<Integer> rankOperationsByTCMBViolation(Schedule schedule) {
+		Map<Integer, Double> opViolationScore = new HashMap<>();
+		List<TCMB> tcmbConstraints = ps.getTCMBList();
+
+		// 计算每个操作的违反程度
+		for (TCMB constraint : tcmbConstraints) {
+			int op1 = constraint.getOp1();
+			int op2 = constraint.getOp2();
+			int timeConstraint = constraint.getTimeConstraint();
+
+			int end1 = schedule.getOperationEndTime(op1);
+			int start2 = schedule.getStartTimes().get(op2);
+
+			int actualGap = start2 - end1;
+			double violation = 0;
+
+			if (actualGap > timeConstraint) {
+				violation = actualGap - timeConstraint;
+				opViolationScore.put(op1, opViolationScore.getOrDefault(op1, 0.0) + violation);
+				opViolationScore.put(op2, opViolationScore.getOrDefault(op2, 0.0) + violation);
+			}
+		}
+
+		// 排序操作
+		List<Integer> operations = new ArrayList<>(opViolationScore.keySet());
+		operations.sort((op1, op2) ->
+				Double.compare(opViolationScore.get(op2), opViolationScore.get(op1)));
+
+		return operations;
+	}
+}
+
 class ScheduleState {
 	private final Map<Integer, Integer> machineAssignments;
 	private final Map<Integer, Integer> startTimes;
@@ -26,834 +325,288 @@ class ScheduleState {
 	}
 }
 
-/**
- * 移动计划类，存储复合移动的各个步骤
- */
-class MovePlan {
-	// 为了移动op创造时间窗口
-	List<OperationMove> spacePreparation;
-	OperationMove targetMove;
 
-	public MovePlan() {
-		this.spacePreparation = new ArrayList<>();
-		this.targetMove = null;
+/**
+ * 复合交换操作
+ * 交换两个操作的开始时间，并处理可能出现的约束冲突
+ */
+class CompoundSwap extends CompoundMove {
+	// 被选中交换的两个操作
+	private int operation1;
+	private int operation2;
+
+	@Override
+	public MoveType getType() {
+		return MoveType.SWAP;
 	}
+
+	@Override
+	protected boolean selectTargetOperations(Schedule schedule) {
+		// 基于TCMB违反度排序操作
+		List<Integer> violatingOps = rankOperationsByTCMBViolation(schedule);
+		if (violatingOps.isEmpty()) {
+			return false;
+		}
+
+		// 选择最严重的违反操作
+		operation1 = violatingOps.get(0);
+
+		// 寻找潜在的交换伙伴
+		List<Integer> potentialPartners = findPotentialSwapPartners(schedule, operation1);
+		if (potentialPartners.isEmpty()) {
+			return false;
+		}
+
+		// 随机选择一个伙伴
+		operation2 = potentialPartners.get(random.nextInt(potentialPartners.size()));
+
+		return true;
+	}
+
+	@Override
+	protected boolean doMove(Schedule schedule) {
+		// 交换开始时间
+		int start1 = schedule.getStartTimes().get(operation1);
+		int start2 = schedule.getStartTimes().get(operation2);
+
+		schedule.getStartTimes().put(operation1, start2);
+		schedule.getStartTimes().put(operation2, start1);
+
+		return true;
+	}
+
+	@Override
+	protected boolean resolveConflic(Schedule schedule) {
+		// TODO: 实现机器冲突解决
+		// 1. 识别交换后可能出现的机器冲突
+		// 2. 尝试调整开始时间以解决冲突
+		// 3. 如果无法解决，返回false
+		return true; // 临时返回，实际实现需要替换
+	}
+
+	/**
+	 * 寻找潜在的交换伙伴
+	 */
+	private List<Integer> findPotentialSwapPartners(Schedule schedule, int op1) {
+		List<Integer> partners = new ArrayList<>();
+
+		// TODO: 实现寻找潜在交换伙伴的逻辑
+		// 1. 排除有DAG依赖关系的操作
+		// 2. 检查交换后是否会违反DAG约束
+		// 3. 返回合适的候选伙伴列表
+
+		return partners;
+	}
+
 }
 
 /**
- * 操作移动类，存储单个操作的移动信息
+ * 复合插入操作
+ * 将操作移动到新的开始时间，并处理可能出现的约束冲突
  */
-class OperationMove {
-	int operationId;
-	int newMachine;
-	int newStartTime;
+class CompoundInsert extends CompoundMove {
+	// 被选中插入的操作
+	private int targetOperation;
+	// 新的开始时间
+	private int newStartTime;
 
-	public OperationMove(int operationId, int newMachine, int newStartTime) {
-		this.operationId = operationId;
-		this.newMachine = newMachine;
-		this.newStartTime = newStartTime;
-	}
-}
-
-/**
- * 复合移动操作的主类
- */
-public class CompoundMove {
-	// 各种类型的占比
-	private static final double SHIFTING_WEIGHT = 0.4;
-	private static final double MACHINE_WEIGHT = 0.3;
-	private static final double IMPACT_WEIGHT = 0.3;
-	private static final int MAX_ADJUSTMENT_DEPTH = 3;
-
-	// 静态引用ProblemSetting实例
-	private static final ProblemSetting ps = ProblemSetting.getInstance();
-
-	/**
-	 * 执行具有原子特性的复合移动操作
-	 */
-	public static boolean atomicCompoundMove(Schedule schedule, int targetOp) {
-		ScheduleState initialState = new ScheduleState(schedule);
-		try {
-			MovePlan movePlan = prepareCompoundMove(schedule, targetOp);
-			if (movePlan == null) {
-				throw new RuntimeException("Move plan is null");
-			}
-			if (!executeMovePlan(schedule, movePlan)) {
-				throw new RuntimeException("Move plan execution failed");
-			}
-			if (!validateSchedule(schedule)) {
-				throw new RuntimeException("Schedule validation failed");
-			}
-			return true;
-		} catch (Exception e) {
-			System.out.println("Compound move failed: " + e.getMessage());
-			initialState.restore(schedule);
-			return false;
-		}
+	@Override
+	public MoveType getType() {
+		return MoveType.INSERT;
 	}
 
-	/**
-	 * 准备移动计划
-	 */
-	private static MovePlan prepareCompoundMove(Schedule schedule, int targetOp) {
-		MovePlan movePlan = new MovePlan();
-		int currentMachine = schedule.getAssignedMachine().get(targetOp);
-
-		Set<Integer> relatedOps = getRelatedTCMBOps(targetOp);
-		for (int relatedOp : relatedOps) {
-			List<OperationMove> spacePrep = calculateSpacePreparation(schedule, relatedOp,
-					schedule.getAssignedMachine().get(relatedOp));
-			if (spacePrep != null) {
-				movePlan.spacePreparation = spacePrep;
-				return movePlan;
-			}
-		}
-
-		// 2. 如果相关操作无法移动，尝试移动目标操作
-		List<OperationMove> targetSpacePrep = calculateSpacePreparation(schedule, targetOp, currentMachine);
-		if (targetSpacePrep != null) {
-			movePlan.spacePreparation = targetSpacePrep;
-			return movePlan;
-		}
-
-		// 尝试移动到其他兼容机器
-		for (int newMachine : getCompatibleMachines(targetOp)) {
-			if (newMachine != currentMachine) {
-				System.out.println("Cross Machine: attempting machine " + newMachine);
-				List<OperationMove> spacePrep = calculateSpacePreparation(schedule, targetOp, newMachine);
-
-				if (spacePrep != null) {
-					movePlan.spacePreparation = spacePrep;
-					movePlan.targetMove = calculateBestPosition(schedule, targetOp, newMachine);
-					return movePlan;
-				}
-			}
-		}
-		System.out.println("Failed to find valid move plan");
-		return null;
-	}
-
-	/**
-	 * 执行移动计划
-	 */
-	private static boolean executeMovePlan(Schedule schedule, MovePlan plan) {
-		// 执行空间准备移动
-		for (OperationMove move : plan.spacePreparation) {
-			if (!moveOperation(schedule, move)) {
-				return false;
-			}
-		}
-
-		// 执行目标操作移动
-		if (!moveOperation(schedule, plan.targetMove)) {
-			return false;
-		}
-		return true;
-	}
-
-	/**
-	 * 移动单个操作
-	 */
-	private static boolean moveOperation(Schedule schedule, OperationMove move) {
-		if (schedule.canMoveOperation(move.operationId, move.newMachine, move.newStartTime)) {
-			schedule.getAssignedMachine().put(move.operationId, move.newMachine);
-			schedule.getStartTimes().put(move.operationId, move.newStartTime);
-			return true;
-		}
-		return false;
-	}
-
-	private static boolean validateSchedule(Schedule schedule) {
-		// 1. 验证机器分配的基本约束
-		if (!validateMachineAssignments(schedule)) {
+	@Override
+	protected boolean selectTargetOperations(Schedule schedule) {
+		// 基于TCMB违反度排序操作
+		List<Integer> violatingOps = rankOperationsByTCMBViolation(schedule);
+		if (violatingOps.isEmpty()) {
 			return false;
 		}
 
-		// 2. 验证时间重叠
-		if (!validateTimeOverlaps(schedule)) {
+		//todo 暂时采用随机的方式
+		Collections.shuffle(violatingOps);
+
+		targetOperation = violatingOps.get(0);
+
+		// 计算可行的时间窗口
+		TimeWindow feasibleWindow = calculateFeasibleTimeWindow(schedule, targetOperation);
+		if (feasibleWindow.start > feasibleWindow.end) {
 			return false;
 		}
 
-		// 3. 验证工序前后依赖关系(DAG约束)
-		if (!validatePrecedenceConstraints(schedule)) {
-			return false;
-		}
+
+		// 在可行窗口内随机选择新的开始时间
+		newStartTime = feasibleWindow.start +
+				random.nextInt(feasibleWindow.end - feasibleWindow.start + 1);
 
 		return true;
 	}
 
-	private static boolean validateMachineAssignments(Schedule schedule) {
-		Map<Integer, Integer> assignments = schedule.getAssignedMachine();
-
-		// 确保每个操作都被分配到机器
-		for (Map.Entry<Integer, Integer> entry : assignments.entrySet()) {
-			int operationId = entry.getKey();
-			int machineId = entry.getValue();
-
-			// 机器ID必须有效
-			if (machineId < 0 || machineId >= ps.getMachineNum()) {
-				return false;
-			}
-
-			// 检查机器是否在该操作的兼容机器集合中
-			List<Integer> compatibleMachines = ps.getOpToCompatibleList().get(operationId);
-			if (!compatibleMachines.contains(machineId)) {
-				return false;
-			}
-		}
+	protected boolean doMove(Schedule schedule) {
+		schedule.getStartTimes().put(targetOperation, newStartTime);
 
 		return true;
 	}
 
-	private static boolean validateTimeOverlaps(Schedule schedule) {
-		// 获取每个机器的操作列表
-		Map<Integer, List<Integer>> machineAssignments = schedule.getMachineAssignments();
-
-		// 检查每个机器上的操作是否有时间重叠
-		for (List<Integer> operations : machineAssignments.values()) {
-			// 按开始时间排序
-			operations.sort(Comparator.comparingInt(op -> schedule.getStartTimes().get(op)));
-
-			// 检查相邻操作是否重叠
-			for (int i = 0; i < operations.size() - 1; i++) {
-				int currentOp = operations.get(i);
-				int nextOp = operations.get(i + 1);
-
-				int currentEnd = schedule.getOperationEndTime(currentOp);
-				int nextStart = schedule.getStartTimes().get(nextOp);
-
-				if (currentEnd > nextStart) {
-					return false;  // 发现时间重叠
-				}
-			}
-		}
-
-		return true;
-	}
-
-	private static boolean validatePrecedenceConstraints(Schedule schedule) {
-		Map<Integer, Integer> startTimes = schedule.getStartTimes();
-		Map<Integer, List<Integer>> dag = ps.getDag().getAdjacencyList();
-
-		// 遍历DAG中的所有边
-		for (Map.Entry<Integer, List<Integer>> entry : dag.entrySet()) {
-			int predecessor = entry.getKey();
-			List<Integer> successors = entry.getValue();
-
-			if (successors != null && !successors.isEmpty()) {
-				// 前驱操作的结束时间
-				int predecessorEnd = schedule.getOperationEndTime(predecessor);
-
-				for (int successor : successors) {
-					// 后继操作的开始时间
-					int successorStart = startTimes.get(successor);
-
-					// 验证前后依赖关系
-					if (predecessorEnd > successorStart) {
-						return false;
-					}
-				}
-			}
-		}
-
-		return true;
-	}
-
-	// 获取兼容机器列表
-	private static List<Integer> getCompatibleMachines(int operationId) {
-		return ps.getOpToCompatibleList().get(operationId);
-	}
-
-	/**
-	 * 计算最佳位置
-	 */
-	/**
-	 * 为操作计算最佳位置
-	 * @param schedule 当前调度
-	 * @param operationId 目标操作ID
-	 * @param machineId 目标机器ID
-	 * @return 移动方案，如果找不到合适位置返回null
-	 */
-	private static OperationMove calculateBestPosition(Schedule schedule, int operationId, int machineId) {
-		// 1. 计算时间窗口约束
-		TimeWindow timeWindow = calculateFeasibleTimeWindow(schedule, operationId, machineId);
-		if (timeWindow == null) {
-			return null;  // 无可行时间窗口
-		}
-
-		// 2. 在可行时间窗口内采样多个候选位置
-		List<Integer> candidatePositions = generateCandidatePositions(timeWindow, ps.getProcessingTime()[operationId - 1]);
-
-		// 3. 评估每个候选位置
-		int bestPosition = -1;
-		double bestScore = Double.NEGATIVE_INFINITY;
-
-		for (int position : candidatePositions) {
-			double score = evaluatePosition(schedule, operationId, machineId, position);
-			if (score > bestScore) {
-				bestScore = score;
-				bestPosition = position;
-			}
-		}
-
-		return bestPosition == -1 ? null : new OperationMove(operationId, machineId, bestPosition);
+	@Override
+	protected boolean resolveConflic(Schedule schedule) {
+		// TODO: 实现机器冲突解决
+		// 1. 识别插入后可能出现的机器冲突
+		// 2. 尝试调整其他操作的开始时间
+		// 3. 如果无法解决，返回false
+		return true; // 临时返回，实际实现需要替换
 	}
 
 	/**
 	 * 计算操作的可行时间窗口
 	 */
-	private static TimeWindow calculateFeasibleTimeWindow(Schedule schedule, int operationId, int machineId) {
-		// 1. 计算DAG约束导致的时间窗口
-		int earliestStart = calculateEarliestStartTime(schedule, operationId);
-		int latestEnd = calculateLatestEndTime(schedule, operationId);
+	private TimeWindow calculateFeasibleTimeWindow(Schedule schedule, int op) {
+		// 基本计算
+		int earliestStart = calculateEarliestStartTime(schedule, op);
+		int latestEnd = calculateLatestEndTime(schedule, op);
+		int processingTime = ps.getProcessingTime()[op-1];
 
-		// 2. 考虑机器上已有操作的限制
-		List<int[]> idlePeriods = schedule.getIdleTimePeriods(machineId);
+		// 增加一些灵活性
+		int relaxFactor = Math.max(5, processingTime / 4); // 动态缓冲区
 
-		// 3. 在idle periods中找到满足DAG约束的时间窗口
-		int procTime = ps.getProcessingTime()[operationId - 1];
+		// 放宽窗口（但不要超过硬约束）
+		earliestStart = Math.max(0, earliestStart - relaxFactor);
+		latestEnd = latestEnd + relaxFactor;
+
+		return new TimeWindow(earliestStart, latestEnd - processingTime);
+	}
+}
+
+
+
+/**
+ * 复合重分配操作
+ * 将操作分配到新的机器，并处理可能出现的约束冲突
+ */
+class CompoundReassign extends CompoundMove {
+	// 被选中重分配的操作
+	private int targetOperation;
+	// 新的机器
+	private int newMachine;
+	// 新的开始时间
+	private int newStartTime;
+
+	@Override
+	public MoveType getType() {
+		return MoveType.REASSIGN;
+	}
+
+	@Override
+	protected boolean selectTargetOperations(Schedule schedule) {
+		// 基于TCMB违反度排序操作
+		List<Integer> violatingOps = rankOperationsByTCMBViolation(schedule);
+		if (violatingOps.isEmpty()) {
+			return false;
+		}
+
+		// 筛选出有多个兼容机器的操作
+		List<Integer> candidates = new ArrayList<>();
+		for (int op : violatingOps) {
+			List<Integer> compatibleMachines = ps.getOpToCompatibleList().get(op);
+			if (compatibleMachines.size() > 1) {
+				candidates.add(op);
+			}
+
+			if (candidates.size() >= 3) {
+				break;
+			}
+		}
+
+		if (candidates.isEmpty()) {
+			return false;
+		}
+
+		// 随机选择一个候选操作
+		targetOperation = candidates.get(random.nextInt(candidates.size()));
+
+		// 选择新机器
+		int currentMachine = schedule.getAssignedMachine().get(targetOperation);
+		List<Integer> compatibleMachines = new ArrayList<>(ps.getOpToCompatibleList().get(targetOperation));
+		compatibleMachines.remove(Integer.valueOf(currentMachine));
+
+		if (compatibleMachines.isEmpty()) {
+			return false;
+		}
+
+		newMachine = compatibleMachines.get(random.nextInt(compatibleMachines.size()));
+
+		// 选择新机器上的开始时间
+		TimeWindow feasibleWindow = calculateFeasibleTimeWindow(schedule, targetOperation);
+		List<int[]> idlePeriods = findIdlePeriods(schedule, newMachine, -1);
+
+		// 找到可行的开始时间
 		for (int[] period : idlePeriods) {
-			int start = Math.max(period[0], earliestStart);
-			int end = Math.min(period[1], latestEnd);
-
-			if (end - start >= procTime) {
-				return new TimeWindow(start, end);
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * 生成候选位置
-	 */
-	private static List<Integer> generateCandidatePositions(TimeWindow window, int processingTime) {
-		List<Integer> positions = new ArrayList<>();
-
-		// 1. 添加时间窗口的起始位置
-		positions.add(window.start);
-
-		// 2. 添加时间窗口的结束位置(考虑处理时间)
-		positions.add(window.end - processingTime);
-
-		// 3. 在时间窗口内均匀采样几个位置
-		int windowSize = window.end - window.start - processingTime;
-		int sampleCount = Math.min(5, windowSize);  // 最多采样5个点
-
-		if (windowSize > 0) {
-			for (int i = 1; i < sampleCount; i++) {
-				int pos = window.start + (windowSize * i) / sampleCount;
-				positions.add(pos);
-			}
-		}
-
-		return positions;
-	}
-
-	/**
-	 * 评估某个位置的得分
-	 */
-	private static double evaluatePosition(Schedule schedule, int operationId, int machineId, int position) {
-		double score = evaluateTCMBImprovement(schedule, operationId, position)
-				+ evaluateTimeRelationship(schedule, operationId, machineId, position);
-
-		return score;
-	}
-
-	// 支持类
-	private static class TimeWindow {
-		final int start;
-		final int end;
-
-		TimeWindow(int start, int end) {
-			this.start = start;
-			this.end = end;
-		}
-	}
-
-
-	/**
-	 * 计算操作的最早可能开始时间
-	 * 基于DAG约束，考虑所有前驱操作的完成时间
-	 */
-	private static int calculateEarliestStartTime(Schedule schedule, int operationId) {
-		int earliestStart = 0;
-		List<Integer> predecessors = ps.getDag().getParents(operationId);
-
-		for (int predecessor : predecessors) {
-			int predecessorEnd = schedule.getOperationEndTime(predecessor);
-			earliestStart = Math.max(earliestStart, predecessorEnd);
-		}
-
-		return earliestStart;
-	}
-
-	/**
-	 * 计算操作的最晚可能结束时间
-	 * 基于DAG约束，考虑所有后继操作的开始时间
-	 */
-	private static int calculateLatestEndTime(Schedule schedule, int operationId) {
-		int latestEnd = Integer.MAX_VALUE;
-		List<Integer> successors = ps.getDag().getNeighbors(operationId);
-
-		if (successors != null) {
-			for (int successor : successors) {
-				int successorStart = schedule.getStartTimes().get(successor);
-				latestEnd = Math.min(latestEnd, successorStart);
-			}
-		}
-
-		// 如果没有后继操作，使用一个合理的上界
-		if (latestEnd == Integer.MAX_VALUE) {
-			latestEnd = calculateScheduleUpperBound(schedule);
-		}
-
-		return latestEnd;
-	}
-
-	/**
-	 * 评估TCMB约束的改善程度
-	 */
-	private static double evaluateTCMBImprovement(Schedule schedule, int operationId, int newStartTime) {
-		double improvement = 0.0;
-		List<TCMB> tcmbList = ps.getTCMBList();
-
-		for (TCMB tcmb : tcmbList) {
-			if (tcmb.getOp1() == operationId) {
-				int op2 = tcmb.getOp2();
-				int op2Start = schedule.getStartTimes().get(op2);
-
-				// 计算新旧时间间隔
-				int oldInterval = op2Start - schedule.getOperationEndTime(operationId);
-				int newInterval = op2Start - (newStartTime + ps.getProcessingTime()[operationId - 1]);
-				int timeLimit = tcmb.getTimeConstraint();
-
-				// 计算违反程度的变化
-				int oldViolation = Math.max(0, oldInterval - timeLimit);
-				int newViolation = Math.max(0, newInterval - timeLimit);
-				improvement += (oldViolation - newViolation);
-			}
-			else if (tcmb.getOp2() == operationId) {
-				int op1 = tcmb.getOp1();
-				// 计算新旧时间间隔
-				int oldInterval = schedule.getStartTimes().get(operationId) - schedule.getOperationEndTime(op1);
-				int newInterval = newStartTime - schedule.getOperationEndTime(op1);
-				int timeLimit = tcmb.getTimeConstraint();
-
-				// 计算违反程度的变化
-				int oldViolation = Math.max(0, oldInterval - timeLimit);
-				int newViolation = Math.max(0, newInterval - timeLimit);
-				improvement += (oldViolation - newViolation);
-			}
-		}
-
-		return improvement;
-	}
-	/**
-	 * 评估操作在新位置与其他操作的时间关系
-	 * 目标：
-	 * 1. 保持适度的时间间隔，既提高机器利用率，又保留调整空间
-	 * 2. 如果机器为空，鼓励早开始以提高整体利用率
-	 */
-	private static double evaluateTimeRelationship(Schedule schedule, int operationId, int machineId, int newStartTime) {
-		double score = 0.0;
-		List<Integer> machineOps = schedule.getMachineOperations(machineId);
-		int procTime = ps.getProcessingTime()[operationId - 1];
-
-		if (machineOps.isEmpty()) {
-			// 机器为空时，鼓励早开始
-			score = -newStartTime * 0.1;
-		} else {
-			// 计算与前后操作的间隔并评估
-			for (int otherOp : machineOps) {
-				if (otherOp != operationId) {
-					int otherStart = schedule.getStartTimes().get(otherOp);
-					int otherEnd = schedule.getOperationEndTime(otherOp);
-
-					if (newStartTime < otherStart) {
-						// 当前操作在其他操作之前
-						int gap = otherStart - (newStartTime + procTime);
-						score += evaluateGap(gap);
-					} else {
-						// 当前操作在其他操作之后
-						int gap = newStartTime - otherEnd;
-						score += evaluateGap(gap);
-					}
-				}
-			}
-		}
-
-		return score;
-	}
-
-	/**
-	 * 评估时间间隔的合理性
-	 * 使用单峰函数，在特定间隔值时达到最高分
-	 * 间隔过大或过小都会降低得分
-	 */
-	private static double evaluateGap(int gap) {
-		if (gap < 0) {
-			return Double.NEGATIVE_INFINITY;  // 时间重叠，不可行
-		}
-
-		final int IDEAL_GAP = 5;  // 理想间隔值，可以根据实际情况调整
-		// 使用高斯函数计算得分
-		return Math.exp(-Math.pow(gap - IDEAL_GAP, 2) / (2 * IDEAL_GAP));
-	}
-
-	/**
-	 * 计算调度的上界
-	 * 用于没有后继操作时的最晚结束时间估计
-	 */
-	private static int calculateScheduleUpperBound(Schedule schedule) {
-		int maxEnd = 0;
-		for (Map.Entry<Integer, Integer> entry : schedule.getStartTimes().entrySet()) {
-			int opId = entry.getKey();
-			int endTime = schedule.getOperationEndTime(opId);
-			maxEnd = Math.max(maxEnd, endTime);
-		}
-		// 添加一个合理的缓冲区
-		return maxEnd + 30;  // 缓冲区大小可以根据实际情况调整
-	}
-
-	/**
-	 * 检查是否可以在当前机器上移动
-	 */
-	/**
-	 * 检查操作是否可以在当前机器上移动到更好的位置
-	 * @param schedule 当前调度方案
-	 * @param operationId 待移动的操作ID
-	 * @return 是否可以在当前机器上移动
-	 */
-	/**
-	 * 检查操作是否可以在当前机器上移动到更好的位置
-	 */
-	private static boolean canMoveOnCurrentMachine(Schedule schedule, int operationId) {
-		int currentMachine = schedule.getAssignedMachine().get(operationId);
-		int currentStart = schedule.getStartTimes().get(operationId);
-
-		// 直接复用calculateFeasibleTimeWindow
-		TimeWindow feasibleWindow = calculateFeasibleTimeWindow(schedule, operationId, currentMachine);
-
-		// 如果存在可行时间窗口，且窗口起始时间与当前时间不同，说明可以移动
-		return feasibleWindow != null && feasibleWindow.start != currentStart;
-	}
-
-
-	/**
-	 * 识别会受到目标操作移动影响的所有操作
-	 * @param schedule 当前调度
-	 * @param targetOp 目标操作
-	 * @param newMachine 目标机器
-	 * @return 受影响的操作集合
-	 */
-	private static Set<Integer> identifyAffectedOperations(Schedule schedule, int targetOp, int newMachine) {
-		Set<Integer> affectedOps = new HashSet<>();
-
-		// 只关注目标机器上需要移动以腾出空间的操作
-		List<Integer> machineOps = schedule.getMachineOperations(newMachine);
-		// 找出会与目标操作理想时间窗口重叠的操作
-		TimeWindow idealWindow = calculateIdealTimeWindow(schedule, targetOp);
-		for (int op : machineOps) {
-			if (isOverlapping(schedule, op, idealWindow)) {
-				affectedOps.add(op);
-			}
-		}
-
-		return affectedOps;
-	}
-
-
-	/**
-	 * 计算操作的理想时间窗口
-	 * 基于DAG约束和TCMB约束，但不考虑机器上的其他操作
-	 */
-	private static TimeWindow calculateIdealTimeWindow(Schedule schedule, int operationId) {
-		// 获取基于DAG约束的最早开始和最晚结束时间
-		int earliestStart = calculateEarliestStartTime(schedule, operationId);
-		int latestEnd = calculateLatestEndTime(schedule, operationId);
-
-		// 加入一定的缓冲时间，给调整留出空间
-		int processingTime = ps.getProcessingTime()[operationId - 1];
-		int buffer = processingTime / 2;  // 缓冲时间可以根据实际情况调整
-
-		TimeWindow window = new TimeWindow(
-				Math.max(0, earliestStart - buffer),  // 确保不会小于0
-				latestEnd + buffer
-		);
-
-		return window;
-	}
-
-	/**
-	 * 检查操作是否与给定时间窗口重叠
-	 */
-	private static boolean isOverlapping(Schedule schedule, int operationId, TimeWindow window) {
-		int opStart = schedule.getStartTimes().get(operationId);
-		int opEnd = schedule.getOperationEndTime(operationId);
-
-		// 检查是否有任何重叠
-		// 两个时间段不重叠的条件：一个结束时间早于另一个开始时间
-		// 因此，重叠的条件是：不满足不重叠的条件
-		return !(opEnd <= window.start || opStart >= window.end);
-	}
-
-	/**
-	 * 检查两个时间窗口是否重叠
-	 */
-	private static boolean isWindowsOverlapping(TimeWindow window1, TimeWindow window2) {
-		return !(window1.end <= window2.start || window1.start >= window2.end);
-	}
-
-	/**
-	 * 计算并执行空间准备移动
-	 * @return 如果空间准备成功则返回所有必要的移动操作列表，否则返回null
-	 */
-	private static List<OperationMove> calculateSpacePreparation(Schedule schedule, int targetOp, int machineId) {
-		List<OperationMove> preparations = new ArrayList<>();
-
-		// 1. 获取与targetOp相关的所有TCMB约束操作
-		Set<Integer> relatedOps = getRelatedTCMBOps(targetOp);
-
-		// 2. 对于每个相关操作，计算理想时间窗口
-		Map<Integer, TimeWindow> idealWindows = new HashMap<>();
-		for (int op : relatedOps) {
-			idealWindows.put(op, calculateIdealTimeWindow(schedule, op));
-		}
-
-		// 3. 识别需要移动的操作（包括中间阻碍的操作）
-		Set<Integer> opsToMove = identifyBlockingOperations(schedule, idealWindows);
-
-		// 4. 尝试不同的移动组合
-		return tryVariousMoveCombinations(schedule, targetOp, opsToMove, machineId);
-	}
-
-	/**
-	 * 尝试不同的移动组合来创造空间
-	 * @param schedule 当前调度
-	 * @param targetOp 目标操作
-	 * @param opsToMove 需要移动的操作集合
-	 * @param machineId 目标机器
-	 * @return 可行的移动列表，如果找不到则返回null
-	 */
-	private static List<OperationMove> tryVariousMoveCombinations(Schedule schedule,
-																  int targetOp,
-																  Set<Integer> opsToMove,
-																  int machineId) {
-		List<OperationMove> successfulMoves = new ArrayList<>();
-
-		// 1. 按照开始时间排序操作，确保移动顺序合理
-		List<Integer> sortedOps = new ArrayList<>(opsToMove);
-		sortedOps.sort(Comparator.comparingInt(op -> schedule.getStartTimes().get(op)));
-
-		// 2. 对于每个操作，尝试所有可能的移动位置
-		for (int op : sortedOps) {
-			// 保存当前操作的原始位置
-			int originalMachine = schedule.getAssignedMachine().get(op);
-			int originalStart = schedule.getStartTimes().get(op);
-
-			// 获取该操作的所有可能移动位置
-			List<PossibleMove> possibleMoves = getPossibleMoves(schedule, op);
-
-			for (PossibleMove move : possibleMoves) {
-				// 尝试移动
-				schedule.getAssignedMachine().put(op, move.machine);
-				schedule.getStartTimes().put(op, move.startTime);
-
-				// 检查移动后是否创造了足够的空间
-				if (isSpaceSufficient(schedule, targetOp, machineId)) {
-					successfulMoves.add(new OperationMove(op, move.machine, move.startTime));
-					break;  // 找到一个可行移动就继续处理下一个操作
-				}
-
-				// 如果移动不成功，恢复原位置
-				schedule.getAssignedMachine().put(op, originalMachine);
-				schedule.getStartTimes().put(op, originalStart);
-			}
-
-			// 如果当前操作无法找到可行的移动位置，返回null
-			if (!successfulMoves.contains(new OperationMove(op,
-					schedule.getAssignedMachine().get(op),
-					schedule.getStartTimes().get(op)))) {
-				return null;
-			}
-		}
-
-		return successfulMoves;
-	}
-
-	/**
-	 * 辅助类：表示可能的移动位置
-	 */
-	private static class PossibleMove {
-		int machine;
-		int startTime;
-
-		PossibleMove(int machine, int startTime) {
-			this.machine = machine;
-			this.startTime = startTime;
-		}
-	}
-
-	/**
-	 * 获取操作的所有可能移动位置
-	 */
-	private static List<PossibleMove> getPossibleMoves(Schedule schedule, int operationId) {
-		List<PossibleMove> moves = new ArrayList<>();
-		int processingTime = ps.getProcessingTime()[operationId - 1];
-
-		// 尝试当前机器和兼容机器
-		List<Integer> machines = new ArrayList<>(ps.getOpToCompatibleList().get(operationId));
-
-		for (int machine : machines) {
-			// 获取机器上的空闲时间段
-			List<int[]> idlePeriods = schedule.getIdleTimePeriods(machine);
-
-			for (int[] period : idlePeriods) {
-				// 考虑空闲时段的起始位置
-				if (period[1] - period[0] >= processingTime) {
-					moves.add(new PossibleMove(machine, period[0]));
-
-					// 如果空闲时段足够大，也考虑结束位置
-					if (period[1] - period[0] > processingTime) {
-						moves.add(new PossibleMove(machine, period[1] - processingTime));
-					}
-
-					// 如果空闲时段很大，可以考虑中间位置
-					if (period[1] - period[0] > 2 * processingTime) {
-						int midPoint = (period[0] + period[1] - processingTime) / 2;
-						moves.add(new PossibleMove(machine, midPoint));
-					}
-				}
-			}
-		}
-
-		return moves;
-	}
-
-	/**
-	 * 检查是否为目标操作创造了足够的空间
-	 */
-	/**
-	 * 检查是否为目标操作创造了足够的空间
-	 */
-	private static boolean isSpaceSufficient(Schedule schedule, int targetOp, int machineId) {
-		TimeWindow idealWindow = calculateIdealTimeWindow(schedule, targetOp);
-		List<int[]> idlePeriods = schedule.getIdleTimePeriods(machineId);
-		int procTime = ps.getProcessingTime()[targetOp - 1];
-
-		// 检查是否有足够大的空闲时段，且不与其他操作重叠
-		for (int[] period : idlePeriods) {
-			// 时间窗口要足够大
-			if (period[1] - period[0] >= procTime) {
-				// 检查是否与理想时间窗口有重叠
-				int start = Math.max(period[0], idealWindow.start);
-				int end = Math.min(period[1], idealWindow.end);
-
-				if (end - start >= procTime) {
-					// 检查这个位置是否可行
-					return schedule.canMoveOperation(targetOp, machineId, start);
-				}
+			int overlapStart = Math.max(period[0], feasibleWindow.start);
+			int overlapEnd = Math.min(period[1], feasibleWindow.end);
+			int processingTime = ps.getProcessingTime()[targetOperation-1];
+
+			if (overlapEnd - overlapStart >= processingTime) {
+				newStartTime = overlapStart;
+				return true;
 			}
 		}
 
 		return false;
 	}
 
+	@Override
+	protected boolean doMove(Schedule schedule) {
+		// 更新机器和开始时间
+		schedule.getAssignedMachine().put(targetOperation, newMachine);
+		schedule.getStartTimes().put(targetOperation, newStartTime);
 
+		return true;
+	}
 
-	// 获取所有相关的TCMB约束操作
-	private static Set<Integer> getRelatedTCMBOps(int targetOp) {
-		Set<Integer> relatedOps = new HashSet<>();
-		for (TCMB tcmb : ps.getTCMBList()) {
-			if (tcmb.getOp1() == targetOp) {
-				relatedOps.add(tcmb.getOp2());
-			} else if (tcmb.getOp2() == targetOp) {
-				relatedOps.add(tcmb.getOp1());
-			}
-		}
-		return relatedOps;
+	@Override
+	protected boolean resolveConflic(Schedule schedule) {
+		// 重分配到新机器通常不会直接导致机器冲突
+		// 因为我们在选择新机器和开始时间时已经考虑了空闲时段
+		return true;
 	}
 
 	/**
-	 * 识别所有阻碍理想时间窗口的操作
+	 * 计算操作的可行时间窗口
 	 */
-	private static Set<Integer> identifyBlockingOperations(Schedule schedule, Map<Integer, TimeWindow> idealWindows) {
-		Set<Integer> blockingOps = new HashSet<>();
+	private TimeWindow calculateFeasibleTimeWindow(Schedule schedule, int op) {
+		// 计算基于DAG约束的最早开始和最晚结束时间
+		int earliestStart = calculateEarliestStartTime(schedule, op);
+		int latestEnd = calculateLatestEndTime(schedule, op);
+		int processingTime = ps.getProcessingTime()[op-1];
 
-		for (Map.Entry<Integer, TimeWindow> entry : idealWindows.entrySet()) {
-			int op = entry.getKey();
-			TimeWindow window = entry.getValue();
+		// TODO: 考虑TCMB约束的影响
 
-			// 检查每个机器上的操作
-			for (int machineId = 1; machineId <= ps.getMachineNum(); machineId++) {
-				List<Integer> machineOps = schedule.getMachineOperations(machineId);
-				for (int machineOp : machineOps) {
-					if (machineOp != op && isOverlapping(schedule, machineOp, window)) {
-						blockingOps.add(machineOp);
-					}
-				}
-			}
-		}
-
-		return blockingOps;
+		return new TimeWindow(
+				earliestStart,
+				Math.max(earliestStart, latestEnd - processingTime)
+		);
 	}
-
-
-	/**
-	 * 为受影响的操作计算安全的新位置
-	 * @param schedule 当前调度
-	 * @param affectedOp 受影响的操作
-	 * @return 移动方案，如果无法找到安全位置则返回null
-	 */
-	private static OperationMove calculateSafePosition(Schedule schedule, int affectedOp) {
-		int currentMachine = schedule.getAssignedMachine().get(affectedOp);
-		List<Integer> compatibleMachines = ps.getOpToCompatibleList().get(affectedOp);
-
-		// 首先尝试在当前机器上找位置
-		OperationMove move = tryFindPositionOnMachine(schedule, affectedOp, currentMachine);
-		if (move != null) {
-			return move;
-		}
-
-		// 如果当前机器不行，尝试其他兼容机器
-		for (int machine : compatibleMachines) {
-			if (machine != currentMachine) {
-				move = tryFindPositionOnMachine(schedule, affectedOp, machine);
-				if (move != null) {
-					return move;
-				}
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * 在指定机器上尝试找到安全位置
-	 */
-	private static OperationMove tryFindPositionOnMachine(Schedule schedule, int operationId, int machineId) {
-		TimeWindow window = calculateFeasibleTimeWindow(schedule, operationId, machineId);
-		if (window == null) {
-			return null;
-		}
-
-		int processingTime = ps.getProcessingTime()[operationId - 1];
-		List<Integer> candidatePositions = generateCandidatePositions(window, processingTime);
-
-		double bestScore = Double.NEGATIVE_INFINITY;
-		Integer bestPosition = null;
-
-		for (int position : candidatePositions) {
-			double score = evaluatePosition(schedule, operationId, machineId, position);
-			if (score > bestScore) {
-				bestScore = score;
-				bestPosition = position;
-			}
-		}
-
-		return bestPosition != null ? new OperationMove(operationId, machineId, bestPosition) : null;
-	}
-
-
 }
+
+/**
+ * 移动操作类型枚举
+ */
+enum MoveType {
+	SWAP,
+	INSERT,
+	REASSIGN
+}
+
+/**
+ * 时间窗口辅助类
+ */
+class TimeWindow {
+	int start;
+	int end;
+
+	public TimeWindow(int start, int end) {
+		this.start = start;
+		this.end = end;
+	}
+}
+

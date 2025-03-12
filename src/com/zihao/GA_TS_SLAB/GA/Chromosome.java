@@ -217,9 +217,6 @@ public class Chromosome implements Comparable<Chromosome> {
     }
 
 
-
-
-
     // Check if MS meets the compatibility constraints of OS
     public boolean checkCompatibleMachines() {
         for (int i = 0; i < OS.size(); i++) {

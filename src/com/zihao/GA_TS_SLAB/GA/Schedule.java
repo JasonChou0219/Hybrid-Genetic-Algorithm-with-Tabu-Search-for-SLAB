@@ -208,4 +208,92 @@ public class Schedule {
 
         return sb.toString();
     }
+    /**
+     * 检查调度方案是否满足DAG中的前驱约束
+     * @return 如果满足所有前驱约束则返回true，否则返回false
+     */
+    public boolean checkPrecedenceConstraints() {
+        int[][] distanceMatrix = pb.getDistanceMatrix();
+        Set<Integer> completedOps = new HashSet<>();
+
+        // 遍历所有操作及其开始时间
+        List<Map.Entry<Integer, Integer>> sortedOps = new ArrayList<>(startTimes.entrySet());
+        sortedOps.sort(Map.Entry.comparingByValue()); // 按开始时间排序
+
+        for (Map.Entry<Integer, Integer> entry : sortedOps) {
+            int op = entry.getKey();
+
+            // 检查op的所有前驱操作是否已完成
+            for (int i = 1; i < distanceMatrix.length; i++) {
+                // 如果i是op的前驱操作（距离大于0）且未在已完成集合中
+                if (distanceMatrix[i][op] > 0 && !completedOps.contains(i)) {
+                    System.out.println("操作 " + op + " 的前驱操作 " + i + " 尚未完成，违反了前驱约束");
+                    return false;
+                }
+            }
+
+            // 将当前操作添加到已完成集合
+            completedOps.add(op);
+        }
+
+        return true;
+    }
+
+    /**
+     * 检查调度方案中的操作是否被分配给了兼容的机器
+     * @return 如果所有操作都分配给了兼容机器则返回true，否则返回false
+     */
+    public boolean checkCompatibleMachines() {
+        for (Map.Entry<Integer, Integer> entry : assignedMachine.entrySet()) {
+            int op = entry.getKey();
+            int machine = entry.getValue();
+
+            // 获取操作可兼容的机器列表
+            List<Integer> compatibleMachines = pb.getOpToCompatibleList().get(op);
+
+            // 检查分配的机器是否在兼容列表中
+            if (!compatibleMachines.contains(machine)) {
+                System.out.println("操作 " + op + " 被分配到了不兼容的机器 " + machine);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 检查是否存在机器占用冲突（同一机器上的操作时间重叠）
+     * @return 如果没有机器占用冲突则返回true，否则返回false
+     */
+    public boolean checkMachineOccupation() {
+        // 获取每台机器上的操作分配
+        Map<Integer, List<Integer>> machineAssignments = getMachineAssignments();
+
+        // 检查每台机器上的操作
+        for (Map.Entry<Integer, List<Integer>> entry : machineAssignments.entrySet()) {
+            int machineId = entry.getKey();
+            List<Integer> operations = entry.getValue();
+
+            // 对操作按开始时间排序
+            operations.sort(Comparator.comparingInt(startTimes::get));
+
+            // 检查相邻操作是否有时间重叠
+            for (int i = 0; i < operations.size() - 1; i++) {
+                int currentOp = operations.get(i);
+                int nextOp = operations.get(i + 1);
+
+                int currentEndTime = startTimes.get(currentOp) + pb.getProcessingTime()[currentOp - 1];
+                int nextStartTime = startTimes.get(nextOp);
+
+                if (currentEndTime > nextStartTime) {
+                    System.out.println("机器 " + machineId + " 上的操作 " + currentOp +
+                            " (结束时间: " + currentEndTime + ") 与操作 " +
+                            nextOp + " (开始时间: " + nextStartTime + ") 存在时间重叠");
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
 }
