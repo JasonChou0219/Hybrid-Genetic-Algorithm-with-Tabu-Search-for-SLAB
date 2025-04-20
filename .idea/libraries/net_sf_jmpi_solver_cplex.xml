@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="net.sf.jmpi.solver.cplex" type="repository">
+    <properties maven-id="net.sf.jmpi:jmpi-solver-cplex:0.6" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/net/sf/jmpi/jmpi-solver-cplex/0.6/jmpi-solver-cplex-0.6.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/net/sf/jmpi/jmpi-main/0.6/jmpi-main-0.6.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

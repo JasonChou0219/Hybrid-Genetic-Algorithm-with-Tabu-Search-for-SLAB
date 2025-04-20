@@ -20,5 +20,8 @@
     <orderEntry type="library" name="google.ortools.java" level="project" />
     <orderEntry type="library" name="google.ortools.darwin.aarch64" level="project" />
     <orderEntry type="library" name="ortools-darwin-aarch64-9.11.4210" level="project" />
+    <orderEntry type="library" name="apache.commons.math3" level="project" />
+    <orderEntry type="library" name="net.sf.jmpi.solver.cplex" level="project" />
+    <orderEntry type="library" name="gurobi" level="project" />
   </component>
 </module>

@@ -1,0 +1,41 @@
+The Scheduling for Laboratory Automation in Biology (S-LAB) problem can be formulated as a Flexible Job-Shop Scheduling problem with time constraints.
+Consider a set of $N_j$ jobs $J = {J_1,J_2,...,J_{N_j}}$ to be executed on a set of $N_m$ machines $M = {M_1,M_2,...,M_{N_m}}$. The machines are categorized into $N_t$ different types, where each machine $k$ is of exactly one type $T_k$, and multiple machines may belong to the same type.
+Each job $J_i$ consists of $n_i$ operations, resulting in $N_{op} = \sum_{i=1}^{N_j}n_i$ total operations. The operation $O_a$ is defined as the $j$-th operation of job $J_i$ where $a = \sum_{l=1}^{i-1}n_l + j$.
+The operations within a job must follow specific dependency relationships. This relationship is formulated as a directed acyclic graph $G = (V,E)$, where each node represents an operation and each directed edge signifies the dependency relationship. We define a binary variable $pre_{a,b}$ to represent the precedence relationships:
+$pre_{a,b} = \begin{cases} 1, & \text{if } (O_a,O_b) \in E \ 0, & \text{otherwise} \end{cases}$
+Time constraints between specific pairs of operations are a critical aspect of S-LAB problems. These Time Constraints by Mutual Boundaries (TCMB) require that the time gap between specific operation boundaries (start or end times) should not exceed specified limits. A TCMB is represented as a five-element tuple $(O_a, \text{start/end}, O_b, \text{start/end}, t_{a,b})$. For example, $(O_4, \text{end}, O_7, \text{start}, 10)$ means the time gap between the completion of Operation 4 and the beginning of Operation 7 cannot exceed 10 time units.
+Each operation $O_a$ has a compatible machine type $Com_a$, indicating $O_a$ can only be processed by machines of type $Com_a$. We denote the set of machines compatible with operation $O_a$ as $M^a \subset M$ to avoid ambiguity with the machine indexing.
+The processing time of operation $O_a$ is denoted as $p_a$. This processing time is the same for all compatible machines that can process the operation. The starting time of operation $O_a$ is denoted as $s_a$.
+We use a binary variable $ass_{a,k}$ to represent operation-to-machine assignment:
+$ass_{a,k} = \begin{cases} 1, & \text{if } O_a \text{ is assigned to machine } M_k \text{ where } M_k \in M^a \ 0, & \text{otherwise} \end{cases}$
+We introduce a ternary variable $y_{a,b,k}$ to represent operation sequencing on machines:
+$y_{a,b,k} = \begin{cases} 1, & \text{if } O_a \text{ and } O_b \text{ are assigned to } M_k \text{ and } O_a \text{ is processed before } O_b \ 0, & \text{if } O_a \text{ and } O_b \text{ are not assigned to the same machine} \ -1, & \text{if } O_a \text{ and } O_b \text{ are assigned to } M_k \text{ and } O_b \text{ is processed before } O_a \ \end{cases}$
+
+The objective is to minimize the total makespan $C_{max}$, which is the total completion time of all jobs:
+$\min{C_{max}}$
+Subject to the following constraints:
+1. Uniqueness of operation assignment: $\sum_{k \in M^a}{ass_{a,k}} = 1, \quad \forall a \in {1,2,...,N_{op}}$
+2. Operation precedence: $(s_b - p_a - s_a) \cdot pre_{a,b} \geq 0, \quad \forall a,b \in {1,2,...,N_{op}}$
+3. Mutual exclusivity of machine usage: $s_a + p_a \leq s_b + H \cdot (1 - ass_{a,k} \cdot ass_{b,k}) + H \cdot (1 - y_{a,b,k}), \quad \forall a, b \in {1,2,...,N_{op}}, \forall k \in {1,2,...,N_m}$ $s_b + p_b \leq s_a + H \cdot (1 - ass_{a,k} \cdot ass_{b,k}) + H \cdot (1 + y_{a,b,k}), \quad \forall a, b \in {1,2,...,N_{op}}, \forall k \in {1,2,...,N_m}$
+4. Time constraints: $|s_a - s_b| \leq t_{a,b} \quad \text{(start-to-start)}$ $|s_a - (s_b + p_b)| \leq t_{a,b} \quad \text{(start-to-end)}$ $|(s_a + p_a) - s_b| \leq t_{a,b} \quad \text{(end-to-start)}$ $|(s_a + p_a) - (s_b + p_b)| \leq t_{a,b} \quad \text{(end-to-end)}$
+5. Makespan definition: $C_{max} \geq s_a + p_a \quad \forall a \in {1,2,...,N_{op}}$
+
+
+Constraint (1) ensures each operation is assigned to exactly one compatible machine.
+Constraint (2) enforces precedence relationships between operations as defined by graph G, ensuring proper operation sequencing within jobs.
+Constraint (3) prevents resource conflicts by ensuring operations on the same machine don't overlap. The sufficiently large constant $H$ activates these constraints only when operations are assigned to the same machine and in the specific processing order being tested.
+Constraint (4) implements the TCMB time constraints between operation boundaries, covering all possible combinations of start and end time relationships.
+Constraint (5) defines the makespan as the maximum completion time across all operations.
+
+
+To simplify the problem, we make the following assumptions:
+1. Once an operation begins processing on a compatible machine, it executes until completion without preemption.
+2. A machine has unlimited buffer capacity for operations that are scheduled to this machine.
+3. All processing times of operations are positive.
+4. All time constraints are positive.
+5. The processing time of an operation is the same for all compatible machines that can process it.
+6. Transportation time and setup time between operations are negligible.
+7. The dependency relationship between operations within a job is acyclic.
+
+
+A feasible solution to the S-LAB problem consists of a complete assignment of operations to machines and a scheduling of start times for all operations such that all constraints are satisfied. The optimal solution is the feasible solution with the minimum makespan value.

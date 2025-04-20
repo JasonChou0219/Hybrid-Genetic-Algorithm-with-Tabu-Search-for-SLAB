@@ -12,7 +12,6 @@ import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
 import com.zihao.GA_TS_SLAB.Graph.DirectedAcyclicGraph;
 import com.zihao.GA_TS_SLAB.Test.TestConstraint;
 
-
 public class HybridGA {
 
     private int popNum = Parameters.POP_NUM;
@@ -28,9 +27,6 @@ public class HybridGA {
         Chromosome best = new Chromosome(currentBest);
         Random r = new Random();
 
-//        for (int i = 0; i < parents.length; i++) {
-//            System.out.println(i + ": Fitness = " + parents[i].getFitness() + "Delay :" + parents[i].getDelay());
-//        }
 
         int curGen = 0;
         int remain = 0;
@@ -50,12 +46,6 @@ public class HybridGA {
             // Random disturbance
             children = Operator.RouletteWheelSelection(parents, childrenNum);
 
-//            if (curGen == 0) {
-//                for (int i = 0; i < children.length; i++) {
-//                    System.out.println(i + ": Fitness = " + children[i].getFitness() + "Delay :" + children[i].getDelay());
-//                }
-//            }
-
             if (curGen - remain > Parameters.REMAIN_LOOP) {
                 int disturbNum = (int) (popNum * Parameters.DISTURB_RATIO);
                 for (int i = 0; i < disturbNum; i++) {
@@ -72,12 +62,6 @@ public class HybridGA {
             // Mutation
             Operator.Mutation(children);
 
-//            if (curGen == 0) {
-//                for (int i = 0; i < children.length; i++) {
-//                    System.out.println(i + ": Fitness = " + children[i].getFitness() + "Delay :" + children[i].getDelay());
-//                }
-//            }
-
             // Combine
             int index = 0;
             for (Chromosome o : elist) {
@@ -87,37 +71,16 @@ public class HybridGA {
                 parents[index++] = new Chromosome(o);
             }
 
-//            if (curGen == 0) {
-//                for (int i = 0; i < parents.length; i++) {
-//                    System.out.println(i + ": Fitness = " + parents[i].getFitness() + "Delay :" + parents[i].getDelay());
-//                }
-//            }
-
-
             // Sort the population by fitness to select top individuals for Tabu Search
             Arrays.sort(parents);
 
-//            if (curGen == 0) {
-//                for (int i = 0; i < parents.length; i++) {
-//                    System.out.println(i + ": Fitness = " + parents[i].getFitness() + "Delay :" + parents[i].getDelay());
-//                }
-//            }
-
-            int searchInsertNum = (int) (popNum * Parameters.INSERT_SEARCH_RATIO);
             int searchDelayNum = (int) (popNum * Parameters.DELAY_SEARCH_RATIO);
-//            TabuSearch tabuSearch = new TabuSearch(100, 15);
 
-
-//            TabuSearchInsert tabuSearchInsert = new TabuSearchInsert(100);
             TabuSearchDelay tabuSearchDelay = new TabuSearchDelay(Parameters.TABU_MIN_ITERATION,
                     Parameters.TABU_MAX_ITERATION,
                     Parameters.TABU_SIZE,
                     Parameters.TABU_IMPROVEMENT);
 
-
-//            for (int i = 0; i < searchInsertNum; i++) {
-//                parents[i] = tabuSearchInsert.optimize(parents[i]);  // 执行插入禁忌搜索，返回优化后的个体
-//            }
 
             // Apply Tabu Search to the top searchNum individuals
 //            for (int i = 0; i < searchDelayNum; i++) {
@@ -127,25 +90,25 @@ public class HybridGA {
 //            }
 
             int tournamentSize = 3;  // 锦标赛的规模，可以根据需求调整
-            for (int i = 0; i < searchDelayNum; i++) {
-                Chromosome selectedChromosome = tournamentSelection(Arrays.asList(parents), tournamentSize);  // 锦标赛选择个体
-                Chromosome optimizedChromosome = tabuSearchDelay.optimize(selectedChromosome, best.getFitness());  // 进行 Tabu Search 优化
-                // 替换原始的个体
-                for (int j = 0; j < parents.length; j++) {
-                    if (parents[j].equals(selectedChromosome)) {
-                        parents[j] = optimizedChromosome;  // 更新选择的个体为优化后的个体
-//                        System.out.println("GO here");
-                        break;
-
-                    }
-                }
-            }
-
-//            if (curGen == 30) {
-//                for (int i = 0; i < parents.length; i++) {
-//                    System.out.println(i + ": Fitness = " + parents[i].getFitness() + "Delay :" + parents[i].getDelay());
+//            for (int i = 0; i < searchDelayNum; i++) {
+//                Chromosome selectedChromosome = tournamentSelection(Arrays.asList(parents), tournamentSize);  // 锦标赛选择个体
+//                Chromosome optimizedChromosome = tabuSearchDelay.optimize(selectedChromosome, best.getFitness());  // 进行 Tabu Search 优化
+//                // 替换原始的个体
+//
+//                for (int j = 0; j < parents.length; j++) {
+//                    if (parents[j].equals(selectedChromosome)) {
+//                        parents[j] = optimizedChromosome;  // 更新选择的个体为优化后的个体
+//                        break;
+//
+//                    }
 //                }
 //            }
+
+            int[] selectedIndices = new int[searchDelayNum];
+            for (int i = 0; i < searchDelayNum; i++) {
+                selectedIndices[i] = tournamentSelection(Arrays.asList(parents), tournamentSize);
+                parents[selectedIndices[i]] = tabuSearchDelay.optimize(parents[selectedIndices[i]], best.getFitness());
+            }
 
             currentBest = parents[getBestIndex(parents)];
 
@@ -162,67 +125,38 @@ public class HybridGA {
             curGen++;
         }
 
-//        System.out.println("The initial best fitness is " + initBest.getFitness());
-//        System.out.println("The best fitness is " + best.getFitness());
+//        best.checkPrecedenceConstraints();
 
-
-        Utility.printViolation(best.getSchedule());
-        best.checkPrecedenceConstraints();
 
         // Create SAFM optimizer with customized parameters
-        SAFM safm = new SAFM(10000, 0.98, 5000);
+//        SAFM safm = new SAFM(10000, 0.98, 5000);
 
         // Apply SAFM to optimize the best solution from GA
-        Schedule optimizedSchedule = safm.optimize(best);
+//        Schedule optimizedSchedule = safm.optimize(best);
 
-        Utility.printViolation(optimizedSchedule);
+//        Utility.printViolation(optimizedSchedule);
 
         // Report TCMB violations after SAFM
-        System.out.println("\nTCMB violations after SAFM:");
-//        Utility.printViolation(optimizedSchedule);
-//        optimizedSchedule.checkMachineOccupation();
-//        optimizedSchedule.checkCompatibleMachines();
-//        optimizedSchedule.checkPrecedenceConstraints();
-
-
-//			System.out.println(schedule);
-
-        TestConstraint test = new TestConstraint("qPCR_RNAseq_N5");
-
-
-        if (!test.checkDependency(optimizedSchedule)){
-            System.out.println("The schedule has violated precedence constraint");
-        }
-        if (!test.checkMachineConstraint(optimizedSchedule)){
-            System.out.println("The schedule has violates machine constraint");
-        }
-        if (!test.checkTCMBConstraint(optimizedSchedule)){
-            System.out.println("The schedule has violated TCMB constraint");
-        }
-        if (!test.checkMachineOccupation(optimizedSchedule)){
-            System.out.println("The schedule has violated machine occupation constraint");
-        }
-
-//        for (int i = 0; i < 1; i++) {  // 测试5次
-//            System.out.println("\n=== Test " + (i+1) + " ===");
-//            CompoundMoveTest.testSingleCompoundMove(best.getSchedule());
-//        }
-
+//        System.out.println("\nTCMB violations after SAFM:");
 //
-//        System.out.println("Final population fitness values:");
-//        for (int i = 0; i < 500; i++) {
-////            System.out.println(i + ": Fitness = " + parents[i].getFitness() + "; OS = " + parents[i].getOS()  + "; MS = " +
-////                    parents[i].getMS() + "; Delay :" + parents[i].getDelay());
-//            System.out.println(i + ": Fitness = " + parents[i].getFitness() + "; OS = " + parents[i].getOS()  + "; MS = " +
-//                    parents[i].getMS()) ;
-//        }
-//        System.out.println("The info of best, OS: " + best.getOS() + "; MS :" + best.getMS() + "; delay : " + best.getDelay());
-//        ProblemSetting problemSetting = ProblemSetting.getInstance();
-//        Chromosome revised = simulatedAnnealingAdjust(best, problemSetting);
-//        Chromosome revised = adjustDelayBasedOnViolations(best, problemSetting);
-//        checkChromosome(revised);
 
-//        saveFeatureVectors(parents);
+//        Utility.printViolation(best.getSchedule());
+//        TestConstraint test = new TestConstraint("qPCR_RNAseq_N5");
+////
+//        Schedule optimizedSchedule = best.getSchedule();
+//        if (!test.checkDependency(optimizedSchedule)){
+//            System.out.println("The schedule has violated precedence constraint");
+//        }
+//        if (!test.checkMachineConstraint(optimizedSchedule)){
+//            System.out.println("The schedule has violates machine constraint");
+//        }
+////        if (!test.checkTCMBConstraint(optimizedSchedule)){
+////            System.out.println("The schedule has violated TCMB constraint");
+////        }
+//        if (!test.checkMachineOccupation(optimizedSchedule)){
+//            System.out.println("The schedule has violated machine occupation constraint");
+//        }
+//        System.out.println(optimizedSchedule.printMachineSchedule());
 
 //        File outputFile = new File("src/com/zihao/GA_TS_SLAB/Plot/population_data.csv");
 //        exportPopulationData(outputFile, parents);
@@ -242,17 +176,8 @@ public class HybridGA {
 //        conjuncitvePlot(best);
 
 
-//        return best.getSchedule();
-//        ACO_TcmbSolver solver = new ACO_TcmbSolver();
-
-//        Schedule adjust = solver.solve(best);
-//        Utility.printViolation(adjust);
-//        return adjust;
-//        Schedule opt = SimulatedAnnealing.optimize(best, 500, 0.97, 10000);
-
-//        Utility.printViolation(opt);
-//        return best.getSchedule();
-        return optimizedSchedule;
+        return best.getSchedule();
+//        return optimizedSchedule;
     }
 
 
@@ -400,15 +325,42 @@ public class HybridGA {
         return  bestIndex;
     }
 
-    private Chromosome tournamentSelection(List<Chromosome> population, int tournamentSize) {
+    //todo 选择一种 tournament selection
+//    private Chromosome tournamentSelection(List<Chromosome> population, int tournamentSize) {
+//        List<Chromosome> tournament = new ArrayList<>();
+//        Random random = new Random();
+//        for (int i = 0; i < tournamentSize; i++) {
+//            int randomIndex = random.nextInt(population.size());
+//            tournament.add(population.get(randomIndex));
+//        }
+//        // 使用 compareTo 方法进行排序，并选择适应度最好的个体（最小 fitness）
+//        return Collections.min(tournament);  // Collections.min 直接调用 compareTo
+//    }
+
+    /**
+     * 锦标赛选择，返回选中个体在种群中的索引
+     * @param population 种群
+     * @param tournamentSize 锦标赛规模
+     * @return 选中个体在种群中的索引
+     */
+    private int tournamentSelection(List<Chromosome> population, int tournamentSize) {
+        List<Integer> tournamentIndices = new ArrayList<>();
         List<Chromosome> tournament = new ArrayList<>();
-        Random random = new Random();
+        Random r = new Random();
+
+        // 随机选择锦标赛参与者并记录其索引
         for (int i = 0; i < tournamentSize; i++) {
-            int randomIndex = random.nextInt(population.size());
+            int randomIndex = r.nextInt(population.size());
+            tournamentIndices.add(randomIndex);
             tournament.add(population.get(randomIndex));
         }
-        // 使用 compareTo 方法进行排序，并选择适应度最好的个体（最小 fitness）
-        return Collections.min(tournament);  // Collections.min 直接调用 compareTo
+
+        // 找出锦标赛中适应度最好的个体
+        Chromosome bestInTournament = Collections.min(tournament);
+
+        // 返回最优个体在原始种群中的索引
+        int bestIndex = tournamentIndices.get(tournament.indexOf(bestInTournament));
+        return bestIndex;
     }
 
     void checkChromosome(Chromosome o){
@@ -454,156 +406,6 @@ public class HybridGA {
 
         return chromosome;
     }
-
-
-//    public class Pair<K, V> {
-//        private final K key;
-//        private final V value;
-//
-//        public Pair(K key, V value) {
-//            this.key = key;
-//            this.value = value;
-//        }
-//
-//        public K getKey() {
-//            return key;
-//        }
-//
-//        public V getValue() {
-//            return value;
-//        }
-//
-//        @Override
-//        public String toString() {
-//            return "(" + key + ", " + value + ")";
-//        }
-//    }
-
-
-//    public Chromosome simulatedAnnealingAdjust(Chromosome chromosome, ProblemSetting problemSetting) {
-//        // 初始化参数
-//        Random random = new Random();
-//        double temperature = 1000;
-//        double coolingRate = 0.95;
-//        int maxIterations = 1000;
-//        Chromosome currentChromosome = new Chromosome(chromosome);
-//        Chromosome bestChromosome = new Chromosome(chromosome);
-//        double currentFitness = currentChromosome.getFitness();
-//
-//        List<TCMB> tcmbList = problemSetting.getTCMBList();
-//
-//        // 迭代过程
-//        for (int iter = 0; iter < maxIterations; iter++) {
-//            // 记录违反TCMB约束的操作对
-//            List<Pair<Integer, Integer>> violatingPairs = getViolatingPairs(currentChromosome, problemSetting);
-//
-//            // 如果没有违反约束的操作对，返回最优解
-//            if (violatingPairs.isEmpty()) {
-//                return bestChromosome;
-//            }
-//
-//            // 随机选择一个违反约束的操作对
-//            Pair<Integer, Integer> selectedPair = violatingPairs.get(random.nextInt(violatingPairs.size()));
-//            int opA = selectedPair.getKey();
-//            int opB = selectedPair.getValue();
-//
-//            // 生成邻域解
-//            Chromosome neighborChromosome = new Chromosome(currentChromosome);
-//            generateNeighbor(neighborChromosome, opA, opB);
-//
-//            // 更新调度和适应度
-//            neighborChromosome.updateScheduleAndFitness();
-//            double neighborFitness = neighborChromosome.getFitness();
-//
-//            // 违反约束数量
-//            int currentViolations = countViolations(currentChromosome, problemSetting);
-//            int neighborViolations = countViolations(neighborChromosome, problemSetting);
-//
-//            // 接受准则
-//            if (neighborViolations < currentViolations ||
-//                    (neighborViolations == currentViolations && neighborFitness < currentFitness)) {
-//                // 如果邻域解更优或等效但适应度更好，接受此解
-//                currentChromosome = neighborChromosome;
-//                currentFitness = neighborFitness;
-//
-//                // 更新最优解
-//                if (neighborViolations < countViolations(bestChromosome, problemSetting) ||
-//                        (neighborViolations == countViolations(bestChromosome, problemSetting) && neighborFitness < bestChromosome.getFitness())) {
-//                    bestChromosome = neighborChromosome;
-//                }
-//            } else {
-//                // 以一定概率接受更差的解
-//                double acceptanceProbability = Math.exp((currentViolations - neighborViolations) / temperature);
-//                if (Math.random() < acceptanceProbability) {
-//                    currentChromosome = neighborChromosome;
-//                    currentFitness = neighborFitness;
-//                }
-//            }
-//
-//            // 冷却过程
-//            temperature *= coolingRate;
-//        }
-//
-//        return bestChromosome;
-//    }
-
-//    // 获取违反约束的操作对
-//    private List<Pair<Integer, Integer>> getViolatingPairs(Chromosome chromosome, ProblemSetting problemSetting) {
-//        List<Pair<Integer, Integer>> violatingPairs = new ArrayList<>();
-//        List<TCMB>tcmbList = problemSetting.getTCMBList();
-//        for (TCMB tcmb : tcmbList) {
-//            int opA = tcmb.getOp1();
-//            int opB = tcmb.getOp2();
-//            Schedule s = chromosome.decode();
-//            int startA = s.getStartTimes().get(opA);
-//            int endA = startA + problemSetting.getProcessingTime()[opA - 1];
-//            int startB = s.getStartTimes().get(opB);
-//            int timeLag = startB - endA;
-//
-//            if (timeLag < tcmb.getTimeConstraint()) {
-//                violatingPairs.add(new Pair<>(opA, opB));
-//            }
-//        }
-//        return violatingPairs;
-//    }
-
-//    // 生成邻域解
-//    private void generateNeighbor(Chromosome chromosome, int opA, int opB) {
-//        // 获取当前的延迟
-//        int currentDelay = chromosome.getDelay().getOrDefault(opA, 0);
-//
-//        // 动态步长调整
-//        int step = (int) (Math.random() * 5 + 1);  // 可以根据需要调整步长
-//        boolean increaseDelay = Math.random() > 0.5;
-//
-//        if (increaseDelay) {
-//            // 增加opA的延迟
-//            chromosome.getDelay().put(opA, currentDelay + step);
-//        } else {
-//            // 减少opA的延迟
-//            chromosome.getDelay().put(opA, Math.max(0, currentDelay - step));
-//        }
-//    }
-
-//    public int countViolations(Chromosome chromosome, ProblemSetting problemSetting) {
-//        int violationCount = 0;
-//        // 遍历 Chromosome，检查违反的约束
-//        for (TCMB tcmb : problemSetting.getTCMBList()) {
-//            int opA = tcmb.getOp1();
-//            int opB = tcmb.getOp2();
-//
-//            Schedule schedule = chromosome.getSchedule();
-//            int endA = schedule.getStartTimes().get(opA) + problemSetting.getProcessingTime()[opA - 1];
-//            int startB = schedule.getStartTimes().get(opB);
-//
-//            int timeLag = startB - endA;
-//            if (timeLag < tcmb.getTimeConstraint()) {
-//                violationCount++;
-//            }
-//        }
-//        return violationCount;
-//    }
-
 
     public Schedule CPsolve(){
         System.out.println(System.getProperty("java.library.path"));

@@ -2,7 +2,6 @@ package com.zihao.GA_TS_SLAB.Data;
 
 import java.io.*;
 import java.util.*;
-import com.zihao.GA_TS_SLAB.Data.ProblemSetting;
 
 /**
  * Description: input the data from dataset

@@ -296,4 +296,69 @@ public class Schedule {
 
         return true;
     }
+    /**
+     * 按照机器顺序输出每台机器上的操作调度情况
+     * 输出格式为：Machine x: op[start,end] op[start,end] ...
+     * @return 格式化的调度输出字符串
+     */
+    public String printMachineSchedule() {
+        int totalMachines = pb.getMachineNum();
+        int[] processingTimes = pb.getProcessingTime();
+        StringBuilder result = new StringBuilder();
+
+        // 为每台机器创建一个列表，存储分配给该机器的操作
+        Map<Integer, List<OpSchedule>> machineSchedules = new HashMap<>();
+        for (int m = 1; m <= totalMachines; m++) {
+            machineSchedules.put(m, new ArrayList<>());
+        }
+
+        // 收集每个操作的调度信息
+        for (Map.Entry<Integer, Integer> entry : assignedMachine.entrySet()) {
+            int opId = entry.getKey();
+            int machineId = entry.getValue();
+            int startTime = startTimes.get(opId);
+            int procTime = processingTimes[opId - 1]; // 处理时间数组是从0开始索引的
+            int endTime = startTime + procTime;
+
+            // 创建操作调度对象并添加到对应机器的列表中
+            machineSchedules.get(machineId).add(new OpSchedule(opId, startTime, endTime));
+        }
+
+        // 对每台机器上的操作按开始时间排序
+        for (int m = 1; m <= totalMachines; m++) {
+            List<OpSchedule> schedules = machineSchedules.get(m);
+            Collections.sort(schedules);
+
+            // 格式化输出该机器的调度
+            result.append("Machine ").append(m).append(": ");
+            for (OpSchedule op : schedules) {
+                result.append("op").append(op.opId)
+                        .append("[").append(op.startTime).append(",").append(op.endTime).append("] ");
+            }
+            result.append("\n");
+        }
+
+        return result.toString();
+    }
+
+    /**
+     * 内部辅助类，表示一个操作的调度信息
+     */
+    private static class OpSchedule implements Comparable<OpSchedule> {
+        int opId;
+        int startTime;
+        int endTime;
+
+        public OpSchedule(int opId, int startTime, int endTime) {
+            this.opId = opId;
+            this.startTime = startTime;
+            this.endTime = endTime;
+        }
+
+        @Override
+        public int compareTo(OpSchedule other) {
+            // 按开始时间排序
+            return Integer.compare(this.startTime, other.startTime);
+        }
+    }
 }

@@ -1,9 +1,6 @@
 package com.zihao.GA_TS_SLAB.Data;
 
 import java.util.*;
-
-
-import com.zihao.GA_TS_SLAB.Data.TCMB;
 import com.zihao.GA_TS_SLAB.Graph.DirectedAcyclicGraph;
 
 
@@ -61,7 +58,6 @@ public class ProblemSetting {
         this.machineTypeToList = new HashMap<>();
         this.opToJob = new HashMap<>();
         this.TCMBList = new ArrayList<>();
-//        this.delayList = new ArrayList<>();
         this.tcmbOps = new HashSet<>();
         this.dag = new DirectedAcyclicGraph();
         this.reverseDag = new DirectedAcyclicGraph();
@@ -171,14 +167,7 @@ public class ProblemSetting {
     public void setTcmbOps(Set<Integer> tcmbOps){
         this.tcmbOps = tcmbOps;
     }
-//    //delay list
-//    public List<Integer> getDelayList(){
-//        return delayList;
-//    }
 
-//    public void setDelayList(List<Integer> delayList) {
-//        this.delayList = delayList;
-//    }
 
     //DAG
     public DirectedAcyclicGraph getDag() {

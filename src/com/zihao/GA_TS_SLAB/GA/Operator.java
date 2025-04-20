@@ -14,37 +14,36 @@ public class Operator {
 
     private static ProblemSetting problemSetting = ProblemSetting.getInstance();
     private static Random r = new Random();
+    private static final boolean DEBUG = true; // 调试开关，可以方便地打开或关闭调试输出
+
+    /**
+     * 辅助方法：用于调试输出
+     */
+    private static void debug(String message) {
+        if (DEBUG) {
+            System.out.println("[DEBUG] " + message);
+        }
+    }
+
 
     /**
      * Description: elitist selection
      */
 
     public static Chromosome[] ElitistSelection(Chromosome[] parents, int elitNum) {
-//        int popNum = Parameters.POP_NUM;
-//        double elitRate = Parameters.ELIT_RATIO;
-//
-//        int elitNum = (int) (elitRate * popNum);
+//        debug("执行精英选择，选择数量: " + elitNum);
         Chromosome[] elites = new Chromosome[elitNum];
 
         ArrayList<Chromosome> p = new ArrayList<>();
         Collections.addAll(p, parents);
         Collections.sort(p);
 
-//        System.out.println("All chromosomes after sorting by fitness (ascending):");
-//        for (int i = 0; i < p.size(); i++) {
-//            System.out.println("Chromosome " + i + " with fitness: " + p.get(i).getFitness());
-//        }
-
         for (int i = 0; i < elitNum; i++) {
             Chromosome o = p.get(i);
             elites[i] = new Chromosome(o);
-//            System.out.println("Selected elite chromosome " + i + " with fitness: " + elites[i].getFitness());
+//            debug("选中精英 #" + i + ": fitness=" + o.getFitness());
         }
-//        for (int i = 0; i < elitNum; i++) {
-//            Chromosome o = p.get(i);
-//            elites[i] = new Chromosome(o);
-//            System.out.println("Selected elite chromosome " + i + " with fitness: " + elites[i].getFitness());
-//        }
+//        debug("精英选择完成");
         return elites;
     }
 
@@ -52,37 +51,33 @@ public class Operator {
      * Description: tournament selection
      */
     public static Chromosome[] TournamentSelection(Chromosome[] parents, int tourNum) {
-//        int popNum = Parameters.POP_NUM;
-//        double elitRate = Parameters.ELIT_RATIO;
-//
-//        int elitNum = (int) (elitRate * popNum);
+//    	debug("执行锦标赛选择，选择数量: " + tourNum);
         Chromosome[] tournamentSelection = new Chromosome[tourNum];
         int popNum = parents.length;
 
         for (int i = 0; i < tourNum; i++) {
             int n1 = r.nextInt(popNum);
             int n2 = r.nextInt(popNum);
+//            debug("锦标赛 #" + i + ": 个体 " + n1 + " (fitness=" + parents[n1].getFitness() +
+//                  ") vs 个体 " + n2 + " (fitness=" + parents[n2].getFitness() + ")");
             if (parents[n1].getFitness() < parents[n2].getFitness()){
                 Chromosome o = parents[n2];
                 tournamentSelection[i] = new Chromosome(o);
+//                debug("锦标赛 #" + i + ": 选择个体 " + n1 + " (fitness=" + o.getFitness() + ")");
             }
             else{
                 Chromosome o = parents[n1];
                 tournamentSelection[i] = new Chromosome(o);
+//                debug("锦标赛 #" + i + ": 选择个体 " + n2 + " (fitness=" + o.getFitness() + ")");
             }
-//            System.out.println("Selected chromosome " + i + " with fitness: " + tournamentSelection[i].getFitness());
         }
-
+//		debug("锦标赛选择完成");
         return tournamentSelection;
     }
 
 
     public static Chromosome[] RouletteWheelSelection(Chromosome[] parents, int rouletteNum) {
-
-//        int popNum = Parameters.POP_NUM;
-//        double elitRate = Parameters.ELIT_RATIO;
-//
-//        int elitNum = (int) (elitRate * popNum);
+//		debug("执行轮盘赌选择，选择数量: " + rouletteNum);
         Chromosome[] wheelSelection = new Chromosome[rouletteNum];
         int popNum = parents.length;
 
@@ -94,16 +89,13 @@ public class Operator {
             fitnessValues[i] = 1.0 / (parents[i].getFitness() + 1); //
             totalFitness += fitnessValues[i];
         }
-
+//		debug("总适应度反比值: " + totalFitness);
         // Normalize fitness values and create cumulative probability distribution
         double[] cumulativeProbabilities = new double[popNum];
         cumulativeProbabilities[0] = fitnessValues[0] / totalFitness;
 
         for (int i = 1; i < popNum; i++) {
             cumulativeProbabilities[i] = cumulativeProbabilities[i - 1] + fitnessValues[i] / totalFitness;
-//            if (i == popNum - 1) {
-//                System.out.println("The last cumulativeP is "+ cumulativeProbabilities[i]);
-//            }
         }
 
         cumulativeProbabilities[popNum - 1] = 1.0;
@@ -111,15 +103,16 @@ public class Operator {
         // Selection of individuals based on roulette wheel
         for (int i = 0; i < rouletteNum; i++) {
             double rand = r.nextDouble();
+//            debug("轮盘赌 #" + i + ": 随机值 = " + rand);
             for (int j = 0; j < popNum; j++) {
                 if (rand <= cumulativeProbabilities[j]) {
-//                    System.out.println("THe random number is "+ rand);
-//                    System.out.println("The accumulate p is "+ cumulativeProbabilities[j]);
                     wheelSelection[i] = new Chromosome(parents[j]); // Create a copy of the selected chromosome
+//                    debug("轮盘赌 #" + i + ": 选择个体 " + j + " (fitness=" + parents[j].getFitness() + ")");
                     break;
                 }
             }
         }
+//        debug("轮盘赌选择完成");
 
         return wheelSelection;
     }
@@ -127,15 +120,17 @@ public class Operator {
     /**
      * Description: precedence operation crossover(POX) and job-based crossover (JBX) for OS chromosome,
      * two-point crossover for MS chromosome.
+     * //todo corssover for delay
      */
     public static void Crossover(Chromosome[] parents) {
+//    	debug("开始交叉操作");
          int num = parents.length;
 
          // Might be odd if elist is odd
         for (int i = 0; i < num & i + 1 < num; i += 2) {
 
             if (r.nextDouble() < Parameters.CROSSOVER_RATE) {
-
+//				debug("交叉对 #" + i/2 + ": 个体 " + i + " 和 " + (i+1));
                 Chromosome parent1 = parents[i];
                 Chromosome parent2 = parents[i + 1];
 
@@ -144,43 +139,39 @@ public class Operator {
                 List<Integer> MS1 = new ArrayList<>(parent1.getMS());
                 List<Integer> MS2 = new ArrayList<>(parent2.getMS());
 
-//                System.out.println("交叉前 Chromosome " + i + " 和 " + (i + 1) + ":");
-//                System.out.println("OS1: " + OS1);
-//                System.out.println("OS2: " + OS2);
-//                System.out.println("MS1: " + MS1);
-//                System.out.println("MS2: " + MS2);
+//				debug("交叉前 OS1: " + OS1);
+//                debug("交叉前 OS2: " + OS2);
+//                debug("交叉前 MS1: " + MS1);
+//                debug("交叉前 MS2: " + MS2);
 
                 if (r.nextDouble() < Parameters.OS_CROSSOVER_RATIO) {
+//                	debug("执行 POX 交叉");
                     POXCrossover(OS1, OS2);
                 } else {
+//                	debug("执行 JBX 交叉");
                     JBXCrossover(OS1, OS2);
                 }
 
                 // Perform two-point crossover for MS
+//                debug("执行 MS 两点交叉");
                 TwoPointCrossover(MS1, MS2);
-
-//                System.out.println("交叉后 Chromosome " + i + " 和 " + (i + 1) + ":");
-//                System.out.println("OS1: " + OS1);
-//                System.out.println("OS2: " + OS2);
-//                System.out.println("MS1: " + MS1);
-//                System.out.println("MS2: " + MS2);
 
                 // replace parent by crossover offspring
                 // adjust MS by compatibility
+//                debug("调整 MS 以确保兼容性");
                 MS1 = Utility.compatibleAdjust(MS1, OS1);
                 MS2 = Utility.compatibleAdjust(MS2, OS2);
                 parents[i].setOS(OS1);
                 parents[i].setMS(MS1);
                 parents[i + 1].setOS(OS2);
                 parents[i + 1].setMS(MS2);
-
-//                System.out.println("调整后 Chromosome " + i + " 和 " + (i + 1) + ":");
-//                System.out.println("MS1: " + MS1);
-//                System.out.println("MS2: " + MS2);
-//                System.out.println("====================================");
-//                System.out.println("Performed crossover between chromosome " + i + " and " + (i + 1));
+//				debug("交叉后 OS1: " + OS1);
+//                debug("交叉后 OS2: " + OS2);
+//                debug("交叉后 MS1: " + MS1);
+//                debug("交叉后 MS2: " + MS2);
             }
         }
+//        debug("交叉操作完成");
     }
 
     /**
@@ -188,10 +179,6 @@ public class Operator {
      */
     // 对于只有单个job的crossover该如何解决呢?
     private static void POXCrossover(List<Integer> OS1, List<Integer> OS2) {
-//        System.out.println("Performing POX Crossover: =============================");
-//        System.out.println("Crossover between:");
-//        System.out.println("Parent 1: " + OS1.toString());
-//        System.out.println("Parent 2: " + OS2.toString());
 
         int totalJobs = problemSetting.getJobNum();
         Set<Integer> J1 = new HashSet<>();
@@ -206,35 +193,46 @@ public class Operator {
             }
         }
 
+//		debug("POX 划分工作集 J1: " + J1);
+//        debug("POX 划分工作集 J2: " + J2);
         // Log the contents of J1 and J2
-//        System.out.println("J1 contains jobs: " + J1.toString());
-//        System.out.println("J2 contains jobs: " + J2.toString());
 
         List<Integer> Off1 = new ArrayList<>(Collections.nCopies(OS1.size(), -1));
         List<Integer> Off2 = new ArrayList<>(Collections.nCopies(OS2.size(), -1));
 
         // Allocate operations belonging to J1 in P1 to O1 and J1 in P2 to O2
         for (int i = 0; i < OS1.size(); i++) {
-            if (J1.contains(problemSetting.getOpToJob().get(OS1.get(i)))) {
+            int job1 = problemSetting.getOpToJob().get(OS1.get(i));
+            int job2 = problemSetting.getOpToJob().get(OS2.get(i));
+
+            if (J1.contains(job1)) {
                 Off1.set(i, OS1.get(i));
+//                debug("从 P1 保持位置 " + i + " 的 J1 操作: " + OS1.get(i) + " (工作 " + job1 + ")");
             }
-            if (J1.contains(problemSetting.getOpToJob().get(OS2.get(i)))) {
+
+            if (J1.contains(job2)) {
                 Off2.set(i, OS2.get(i));
+//                debug("从 P2 保持位置 " + i + " 的 J1 操作: " + OS2.get(i) + " (工作 " + job2 + ")");
             }
         }
 
+
+//		debug("J1 操作分配后 Off1: " + Off1);
+//        debug("J1 操作分配后 Off2: " + Off2);
         // Log the intermediate offspring after placing J1 operations
-//        System.out.println("Off1 after placing J1 operations: " + Off1.toString());
-//        System.out.println("Off2 after placing J1 operations: " + Off2.toString());
 
         // Fill the empty positions of O1 with operations belonging to J2 in P2 sequentially
         int index1 = 0;
         for (int op : OS2) {
-            if (J2.contains(ProblemSetting.getInstance().getOpToJob().get(op))) {
-                while (Off1.get(index1) != -1) {
+            int job = problemSetting.getOpToJob().get(op);
+            if (J2.contains(job)) {
+                while (index1 < Off1.size() && Off1.get(index1) != -1) {
                     index1++;
                 }
-                Off1.set(index1, op);
+                if (index1 < Off1.size()) {
+                    Off1.set(index1, op);
+//                    debug("从 P2 添加 J2 操作到 Off1 位置 " + index1 + ": " + op + " (工作 " + job + ")");
+                }
             }
         }
 
@@ -244,16 +242,22 @@ public class Operator {
         // Fill the empty positions of O2 with operations belonging to J2 in P1 sequentially
         int index2 = 0;
         for (int op : OS1) {
-            if (J2.contains(ProblemSetting.getInstance().getOpToJob().get(op))) {
-                while (Off2.get(index2) != -1) {
+            int job = problemSetting.getOpToJob().get(op);
+            if (J2.contains(job)) {
+                while (index2 < Off2.size() && Off2.get(index2) != -1) {
                     index2++;
                 }
-                Off2.set(index2, op);
+                if (index2 < Off2.size()) {
+                    Off2.set(index2, op);
+//                    debug("从 P1 添加 J2 操作到 Off2 位置 " + index2 + ": " + op + " (工作 " + job + ")");
+                }
             }
         }
 
+//        debug("最终 Off1: " + Off1);
+//        debug("最终 Off2: " + Off2);
+
         // Log the offspring after filling with J2 operations from OS1
-//        System.out.println("Off2 after filling with J2 operations from Parent 1: " + Off2.toString());
 
         // Update the original parents with the new offspring
         OS1.clear();
@@ -262,8 +266,6 @@ public class Operator {
         OS2.addAll(Off2);
 
         // Final log
-//        System.out.println("Final Offspring 1: " + OS1.toString());
-//        System.out.println("Final Offspring 2: " + OS2.toString());
     }
     /**
      * Description: job-based crossover (JBX)
@@ -283,18 +285,28 @@ public class Operator {
             }
         }
 
+//        debug("JBX 划分工作集 J1: " + J1);
+//        debug("JBX 划分工作集 J2: " + J2);
+
         List<Integer> O1 = new ArrayList<>(Collections.nCopies(OS1.size(), -1));
         List<Integer> O2 = new ArrayList<>(Collections.nCopies(OS2.size(), -1));
 
         // Allocate operations belonging to J1 in P1 to O1 and J2 in P2 to O2
         for (int i = 0; i < OS1.size(); i++) {
-            if (J1.contains(ProblemSetting.getInstance().getOpToJob().get(OS1.get(i)))) {
+            int job1 = problemSetting.getOpToJob().get(OS1.get(i));
+            int job2 = problemSetting.getOpToJob().get(OS2.get(i));
+
+            if (J1.contains(job1)) {
                 O1.set(i, OS1.get(i));
             }
-            if (J2.contains(ProblemSetting.getInstance().getOpToJob().get(OS2.get(i)))) {
+
+            if (J2.contains(job2)) {
                 O2.set(i, OS2.get(i));
             }
         }
+
+//        debug("初步分配后 O1: " + O1);
+//        debug("初步分配后 O2: " + O2);
 
         // Fill the empty positions of O1 with operations belonging to J2 in P2 sequentially
         int index1 = 0;
@@ -318,6 +330,9 @@ public class Operator {
             }
         }
 
+
+//		debug("填充后 O1: " + O1);
+//        debug("填充后 O2: " + O2);
         OS1.clear();
         OS1.addAll(O1);
         OS2.clear();
@@ -329,9 +344,10 @@ public class Operator {
 
     private static void TwoPointCrossover(List<Integer> MS1, List<Integer> MS2) {
         // 输出初始的 MS1 和 MS2
-//        System.out.println("执行 TwoPointCrossover: =============================");
-//        System.out.println("初始 MS1: " + MS1.toString());
-//        System.out.println("初始 MS2: " + MS2.toString());
+
+//        debug("MS 两点交叉开始");
+//        debug("交叉前 MS1: " + MS1);
+//        debug("交叉前 MS2: " + MS2);
 
         int length = MS1.size();
         int p1 = r.nextInt(length);
@@ -346,7 +362,7 @@ public class Operator {
         }
 
         // 输出选定的交叉点
-//        System.out.println("选定的交叉点 p1: " + p1 + ", p2: " + p2);
+
 
         List<Integer> Off1 = new ArrayList<>(MS1);
         List<Integer> Off2 = new ArrayList<>(MS2);
@@ -368,11 +384,7 @@ public class Operator {
         MS2.addAll(Off2);
 
 //        // 输出最终的 MS1 和 MS2
-//        System.out.println("最终的 MS1: " + MS1.toString());
-//        System.out.println("最终的 MS2: " + MS2.toString());
     }
-
-
 
 
     public static class EditDistance {
@@ -444,8 +456,11 @@ public class Operator {
         double avgDistance = totalDistance / sampleSize;
 
         // 归一化多样性到 [0, 1]
-        double maxPossibleDistance = (isOS ? population.get(0).getOS().size() : population.get(0).getMS().size());
+//        double maxPossibleDistance = (isOS ? population.get(0).getOS().size() : population.get(0).getMS().size());
+        // 更精确的归一化方式
+        double maxPossibleDistance = Math.max(population.get(0).getOS().size(), population.get(0).getMS().size()) * 2;
         double normalizedDiversity = avgDistance / maxPossibleDistance;
+
 
         // 确保归一化后的多样性在 [0, 1] 范围内
         return Math.max(0.0, Math.min(1.0, normalizedDiversity));
@@ -460,14 +475,8 @@ public class Operator {
         Set<Integer> tcmbOps = problemSetting.getTcmbOps();
         int[][] distanceMatrix = problemSetting.getDistanceMatrix();
 
-//        System.out.println("OS 多样性: " + osDiversity);
-//        System.out.println("MS 多样性: " + msDiversity);
-
-        double osDiversity = calculateSampledDiversity(parentList, true, 50); // 调整采样对数，例如50
-        double msDiversity = calculateSampledDiversity(parentList, false, 50);
-
-//        System.out.println("OS 多样性: " + osDiversity);
-//        System.out.println("MS 多样性: " + msDiversity);
+        double osDiversity = calculateSampledDiversity(parentList, true, (int)(num * Parameters.DIVERSITY_SAMPLE_RATIO));
+        double msDiversity = calculateSampledDiversity(parentList, false, (int)(num * Parameters.DIVERSITY_SAMPLE_RATIO));
 
         double osBaseRate = Parameters.OS_MUTATION_RATE;
         double osMaxRate = Parameters.OS_MAX_MUTATION_RATE;
@@ -475,14 +484,8 @@ public class Operator {
         double msMaxRate = Parameters.MS_MAX_MUTATION_RATE;
 
 
-//        double osMutationRate = osBaseRate + (1 - osDiversity) * (osMaxRate - osBaseRate);
-//        double msMutationRate = msBaseRate + (1 - msDiversity) * (msMaxRate - msBaseRate);
-
-
         double osMutationRate = calculateSechMutationRate(osDiversity, osBaseRate, osMaxRate, 6.0, 0.5);
         double msMutationRate = calculateSechMutationRate(msDiversity, msBaseRate, msMaxRate, 18.0, 0.54);
-//        double osMutationRate = osMaxRate;
-//        double msMutationRate = msMaxRate;
 
 //        System.out.println("OS 变异率: " + osMutationRate);
 //        System.out.println("MS 变异率: " + msMutationRate);
@@ -565,143 +568,12 @@ public class Operator {
 
                 }
 
-//                for (int op : nonTcmbOps) {
-//                    int minDistance = Integer.MAX_VALUE;
-//                    for (int tcmbOp : tcmbOps) {
-//                        if (distanceMatrix[op][tcmbOp] > 0 && distanceMatrix[op][tcmbOp] < minDistance) {
-//                            minDistance = distanceMatrix[op][tcmbOp];
-//                        }
-//                    }
-//
-//                    double probability = minDistance == Integer.MAX_VALUE ? 0 : 1.0 / Math.exp(minDistance); // 使用指数衰减
-//
-//                    if (r.nextDouble() < probability) {
-//                        if (origin.containsKey(op)) {
-//                            // 如果已经存在延迟，只在-1, 0, 1范围内调整
-//                            int currentDelay = origin.get(op);
-//                            int randomAdjustment = r.nextInt(3) - 1; // -1, 0, or 1
-//                            int newDelay = Math.max(0, currentDelay + randomAdjustment); // 确保延迟不为负数
-//                            maxDelay.put(op, newDelay);
-//                        } else {
-//                            // 如果不存在延迟，随机生成 0 到 3 的延迟
-//                            int randomDelay = r.nextInt(4); // 生成 0 到 3 的随机整数
-//                            maxDelay.put(op, randomDelay);
-//                        }
-//                    }
-//                }
-//                System.out.println(maxDelay.isEmpty());
-//                for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()) {
-//                    int opA = entry.getKey();
-//                    int delay = entry.getValue();
-////                    System.out.println("delay for op" + opA + " : " + delay);
-////                    o.getDelay().put(opA, delay);
-//                }
                 // 这里需要考虑原先的非TCMB op
                 o.setDelay(maxDelay);
-//                System.out.println("染色体 " + i + " 执行延迟变异，更新延迟.");
             }
         }
     }
 
-//    public static void Mutation(Chromosome[] parents) {
-//        int num = parents.length;
-//        List<Chromosome> parentList = Arrays.asList(parents);
-//
-////        System.out.println("OS 多样性: " + osDiversity);
-////        System.out.println("MS 多样性: " + msDiversity);
-//
-//        double osDiversity = calculateSampledDiversity(parentList, true, 50); // 调整采样对数，例如50
-//        double msDiversity = calculateSampledDiversity(parentList, false, 50);
-//
-////        System.out.println("OS 多样性: " + osDiversity);
-////        System.out.println("MS 多样性: " + msDiversity);
-//
-//        double osBaseRate = Parameters.OS_MUTATION_RATE;
-//        double osMaxRate = Parameters.OS_MAX_MUTATION_RATE;
-//        double msBaseRate = Parameters.MS_MUTATION_RATE;
-//        double msMaxRate = Parameters.MS_MAX_MUTATION_RATE;
-//
-//
-////        double osMutationRate = osBaseRate + (1 - osDiversity) * (osMaxRate - osBaseRate);
-////        double msMutationRate = msBaseRate + (1 - msDiversity) * (msMaxRate - msBaseRate);
-//
-//
-//        double osMutationRate = calculateSechMutationRate(osDiversity, osBaseRate, osMaxRate, 6.0, 0.5);
-//        double msMutationRate = calculateSechMutationRate(msDiversity, msBaseRate, msMaxRate, 18.0, 0.54);
-////        double osMutationRate = osMaxRate;
-////        double msMutationRate = msMaxRate;
-//
-////        System.out.println("OS 变异率: " + osMutationRate);
-////        System.out.println("MS 变异率: " + msMutationRate);
-//
-//
-//        for (int i = 0; i < num; i++){
-//            Chromosome o = parents[i];
-//            // OS mutation
-////            if (r.nextDouble() < Parameters.OS_MUTATION_RATE) {
-//            if (r.nextDouble() < osMutationRate) {
-//                List<Integer> newOS = new ArrayList<>(o.getOS());
-////                System.out.println("Before mutation: " + newOS);
-//                if (r.nextBoolean()) {
-//                    SwappingMutation(newOS);
-////                    System.out.println("染色体 " + i + " 执行 SwappingMutation.");
-//                } else {
-//                    InsertionMutation(newOS);
-////                    System.out.println("染色体 " + i + " 执行 InsertionMutation.");
-//                }
-////                System.out.println("After mutation: " + newOS);
-//
-//                o.setOS(newOS);
-//            }
-//            // MS mutation
-////            if (r.nextDouble() < Parameters.MS_MUTATION_RATE) {
-//            if (r.nextDouble() < msMutationRate) {
-//                List<Integer> newMS = new ArrayList<>(o.getMS());
-//                MachineReassignmentMutation(newMS, o.getOS());
-////                    System.out.println("染色体 " + i + " 执行 MachineReassignmentMutation.");
-//                o.setMS(newMS);
-//
-//            }
-//            // update schedule and fitness after crossover and mutation
-//            parents[i] = new Chromosome(o);
-//            if (r.nextDouble() < Parameters.DELAY_MUTATION_RATE){
-//                Map<Integer,Integer> maxDelay = new HashMap<>();
-//                for (TCMB tcmb : problemSetting.getTCMBList()) {
-//                    int opA = tcmb.getOp1();
-//                    int opB = tcmb.getOp2();
-//
-//                    int endA = o.getSchedule().getStartTimes().get(opA) + problemSetting.getProcessingTime()[opA - 1];
-//                    int startB = o.getSchedule().getStartTimes().get(opB);
-//
-//                    int timeLag = startB - endA;
-//                    if (timeLag > tcmb.getTimeConstraint()) {
-////                        double delayMean = 0;
-//                        double delayStdDev = (timeLag - tcmb.getTimeConstraint()) / 2.0;
-////                        System.out.println(timeLag - tcmb.getTimeConstraint());
-////                        System.out.println("violation: " + (timeLag - tcmb.getTimeConstraint()));
-//
-////                        int newDelay = (int) Math.round( (1 - r.nextGaussian()) * delayStdDev);
-////                        System.out.println("Random delay fot op" + opA + " : " + newDelay);
-//                        int newDelay = Math.max((int) Math.round((1 - r.nextGaussian()) * delayStdDev), timeLag - tcmb.getTimeConstraint());
-//                        if (newDelay > 0) {
-//                            int curDelay = maxDelay.getOrDefault(opA, Integer.MAX_VALUE);
-//                            maxDelay.put(opA, Math.min(curDelay, newDelay));
-//                        }
-//                    }
-//
-//                }
-////                System.out.println(maxDelay.isEmpty());
-//                for (Map.Entry<Integer, Integer> entry : maxDelay.entrySet()) {
-//                    int opA = entry.getKey();
-//                    int delay = entry.getValue();
-////                    System.out.println("delay for op" + opA + " : " + delay);
-////                    o.getDelay().put(opA, delay);
-//                }
-//                o.setDelay(maxDelay);
-////                System.out.println("染色体 " + i + " 执行延迟变异，更新延迟.");
-//            }
-//        }
-//    }
 
     private static void SwappingMutation(List<Integer> OS) {
         int length = OS.size();
@@ -710,21 +582,13 @@ public class Operator {
         while (p2 == p1) {
             p2 = r.nextInt(length);
         }
-//        System.out.println("交换p1: " + p1 + "的元素 " + OS.get(p1) + " 和 " +  p2 + " 的元素" + OS.get(p2) + ".");
-
 
         // Swap elements
         Collections.swap(OS, p1, p2);
-//        System.out.println("交换后OS " + OS);
 
         // Perform topological sort
         Utility.topologicalSort(OS);
 
-//        List<Integer> sortedOperations = Utility.kahnTopologicalSort(OS);
-//
-//        // Update the original OS with the sorted list
-//        OS.clear();
-//        OS.addAll(sortedOperations);
 
     }
 
@@ -742,11 +606,6 @@ public class Operator {
         // Perform topological sort
         Utility.topologicalSort(OS);
 
-//        List<Integer> sortedOperations = Utility.kahnTopologicalSort(OS);
-//
-//        // Update the original OS with the sorted list
-//        OS.clear();
-//        OS.addAll(sortedOperations);
     }
 
 
@@ -754,7 +613,6 @@ public class Operator {
         int length = MS.size();
         double msMutationRatio = Parameters.MACHINE_MUTATION_RATIO;
         int h = (int) (msMutationRatio * length);
-        r = new Random();
 
         for (int i = 0; i < h; i++) {
             int p = r.nextInt(length);

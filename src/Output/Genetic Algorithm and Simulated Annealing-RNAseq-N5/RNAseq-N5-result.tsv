@@ -1,0 +1,7 @@
+Run_Number	Timestamp	Algorithm	Dataset	Makespan	Execution_Time_Sec	Execution_Time_Ms
+1	2025_04_15_14_10_39	Genetic Algorithm and Simulated Annealing	RNAseq-N5	1037	6	6832
+2	2025_04_15_14_10_54	Genetic Algorithm and Simulated Annealing	RNAseq-N5	1059	3	3964
+3	2025_04_15_14_11_03	Genetic Algorithm and Simulated Annealing	RNAseq-N5	1073	4	4816
+4	2025_04_15_14_11_16	Genetic Algorithm and Simulated Annealing	RNAseq-N5	1099	6	6253
+5	2025_04_15_14_11_34	Genetic Algorithm and Simulated Annealing	RNAseq-N5	1133	4	4001
+6	2025_04_15_14_17_21	Genetic Algorithm and Simulated Annealing	RNAseq-N5	1059	6	6016
